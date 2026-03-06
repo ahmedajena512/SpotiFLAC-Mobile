@@ -153,7 +153,7 @@ class AboutPage extends StatelessWidget {
                   ),
                   _ContributorItem(
                     name: 'Ruubiiiii',
-                    description: 'Provided Qobuz API for the project',
+                    description: 'Provided Qobuz & Deezer API for the project',
                     githubUsername: 'Ruubiiiii',
                     showDivider: false,
                   ),
