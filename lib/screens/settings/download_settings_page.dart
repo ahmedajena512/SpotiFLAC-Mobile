@@ -1405,6 +1405,8 @@ class _DownloadSettingsPageState extends ConsumerState<DownloadSettingsPage> {
 
   String _getFolderOrganizationLabel(String value) {
     switch (value) {
+      case 'playlist':
+        return 'By Playlist';
       case 'artist':
         return 'By Artist';
       case 'album':
@@ -1979,6 +1981,18 @@ class _DownloadSettingsPageState extends ConsumerState<DownloadSettingsPage> {
                   ref
                       .read(settingsProvider.notifier)
                       .setFolderOrganization('none');
+                  Navigator.pop(context);
+                },
+              ),
+              _FolderOption(
+                title: context.l10n.folderOrganizationByPlaylist,
+                subtitle: context.l10n.folderOrganizationByPlaylistSubtitle,
+                example: 'SpotiFLAC/Playlist Name/Track.flac',
+                isSelected: current == 'playlist',
+                onTap: () {
+                  ref
+                      .read(settingsProvider.notifier)
+                      .setFolderOrganization('playlist');
                   Navigator.pop(context);
                 },
               ),

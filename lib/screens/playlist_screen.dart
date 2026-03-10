@@ -416,7 +416,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
         onSelect: (quality, service) {
           ref
               .read(downloadQueueProvider.notifier)
-              .addToQueue(track, service, qualityOverride: quality);
+              .addToQueue(track, service, qualityOverride: quality, playlistName: widget.playlistName);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(context.l10n.snackbarAddedToQueue(track.name)),
@@ -427,7 +427,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     } else {
       ref
           .read(downloadQueueProvider.notifier)
-          .addToQueue(track, settings.defaultService);
+          .addToQueue(track, settings.defaultService, playlistName: widget.playlistName);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.l10n.snackbarAddedToQueue(track.name))),
       );
@@ -586,7 +586,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
         onSelect: (quality, service) {
           ref
               .read(downloadQueueProvider.notifier)
-              .addMultipleToQueue(tracks, service, qualityOverride: quality);
+              .addMultipleToQueue(tracks, service, qualityOverride: quality, playlistName: widget.playlistName);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -599,7 +599,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     } else {
       ref
           .read(downloadQueueProvider.notifier)
-          .addMultipleToQueue(tracks, settings.defaultService);
+          .addMultipleToQueue(tracks, settings.defaultService, playlistName: widget.playlistName);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(context.l10n.snackbarAddedTracksToQueue(tracks.length)),

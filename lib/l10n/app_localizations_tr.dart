@@ -778,6 +778,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get folderOrganizationNone => 'Organizasyon yok';
 
   @override
+  String get folderOrganizationByPlaylist => 'By Playlist';
+
+  @override
+  String get folderOrganizationByPlaylistSubtitle =>
+      'Separate folder for each playlist';
+
+  @override
   String get folderOrganizationByArtist => 'Sanatçıya Göre';
 
   @override

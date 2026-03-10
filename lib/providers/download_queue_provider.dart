@@ -1573,6 +1573,7 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
     bool useAlbumArtistForFolders = true,
     bool usePrimaryArtistOnly = false,
     bool filterContributingArtistsInAlbumArtist = false,
+    String? playlistName,
   }) async {
     String baseDir = state.outputDir;
     final normalizedAlbumArtist = normalizeOptionalString(track.albumArtist);
@@ -1647,6 +1648,11 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
 
     String subPath = '';
     switch (folderOrganization) {
+      case 'playlist':
+        if (playlistName != null && playlistName.isNotEmpty) {
+          subPath = _sanitizeFolderName(playlistName);
+        }
+        break;
       case 'artist':
         final artistName = _sanitizeFolderName(folderArtist);
         subPath = artistName;
@@ -1725,6 +1731,7 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
     bool useAlbumArtistForFolders = true,
     bool usePrimaryArtistOnly = false,
     bool filterContributingArtistsInAlbumArtist = false,
+    String? playlistName,
   }) async {
     final normalizedAlbumArtist = normalizeOptionalString(track.albumArtist);
     var folderArtist = useAlbumArtistForFolders
@@ -1776,6 +1783,11 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
     }
 
     switch (folderOrganization) {
+      case 'playlist':
+        if (playlistName != null && playlistName.isNotEmpty) {
+          return _sanitizeFolderName(playlistName);
+        }
+        return '';
       case 'artist':
         return _sanitizeFolderName(folderArtist);
       case 'album':
@@ -1900,7 +1912,7 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
     );
   }
 
-  String addToQueue(Track track, String service, {String? qualityOverride}) {
+  String addToQueue(Track track, String service, {String? qualityOverride, String? playlistName}) {
     final settings = ref.read(settingsProvider);
     updateSettings(settings);
 
@@ -1912,6 +1924,7 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
       service: service,
       createdAt: DateTime.now(),
       qualityOverride: qualityOverride,
+      playlistName: playlistName,
     );
 
     state = state.copyWith(items: [...state.items, item]);
@@ -1928,6 +1941,7 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
     List<Track> tracks,
     String service, {
     String? qualityOverride,
+    String? playlistName,
   }) {
     final settings = ref.read(settingsProvider);
     updateSettings(settings);
@@ -1942,6 +1956,7 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
         service: service,
         createdAt: DateTime.now(),
         qualityOverride: qualityOverride,
+        playlistName: playlistName,
       );
     }).toList();
 
@@ -3317,6 +3332,7 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
               usePrimaryArtistOnly: settings.usePrimaryArtistOnly,
               filterContributingArtistsInAlbumArtist:
                   settings.filterContributingArtistsInAlbumArtist,
+              playlistName: item.playlistName,
             )
           : '';
       String? appOutputDir;
@@ -3331,6 +3347,7 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
               usePrimaryArtistOnly: settings.usePrimaryArtistOnly,
               filterContributingArtistsInAlbumArtist:
                   settings.filterContributingArtistsInAlbumArtist,
+              playlistName: item.playlistName,
             );
       var effectiveOutputDir = initialOutputDir;
       var effectiveSafMode = isSafMode;

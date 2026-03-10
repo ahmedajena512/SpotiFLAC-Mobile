@@ -755,6 +755,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get folderOrganizationNone => '정리하지 않음';
 
   @override
+  String get folderOrganizationByPlaylist => 'By Playlist';
+
+  @override
+  String get folderOrganizationByPlaylistSubtitle =>
+      'Separate folder for each playlist';
+
+  @override
   String get folderOrganizationByArtist => 'By Artist';
 
   @override

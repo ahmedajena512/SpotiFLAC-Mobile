@@ -1456,6 +1456,18 @@ abstract class AppLocalizations {
   /// **'No organization'**
   String get folderOrganizationNone;
 
+  /// Folder option - playlist folders
+  ///
+  /// In en, this message translates to:
+  /// **'By Playlist'**
+  String get folderOrganizationByPlaylist;
+
+  /// Subtitle for playlist folder option
+  ///
+  /// In en, this message translates to:
+  /// **'Separate folder for each playlist'**
+  String get folderOrganizationByPlaylistSubtitle;
+
   /// Folder option - artist folders
   ///
   /// In en, this message translates to:

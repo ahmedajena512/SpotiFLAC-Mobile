@@ -787,6 +787,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get folderOrganizationNone => 'Без организации';
 
   @override
+  String get folderOrganizationByPlaylist => 'By Playlist';
+
+  @override
+  String get folderOrganizationByPlaylistSubtitle =>
+      'Separate folder for each playlist';
+
+  @override
   String get folderOrganizationByArtist => 'По исполнителю';
 
   @override

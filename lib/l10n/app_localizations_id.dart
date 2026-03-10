@@ -776,6 +776,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get folderOrganizationNone => 'Tidak ada';
 
   @override
+  String get folderOrganizationByPlaylist => 'By Playlist';
+
+  @override
+  String get folderOrganizationByPlaylistSubtitle =>
+      'Separate folder for each playlist';
+
+  @override
   String get folderOrganizationByArtist => 'Berdasarkan Artis';
 
   @override

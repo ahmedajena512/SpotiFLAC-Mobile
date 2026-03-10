@@ -1015,6 +1015,14 @@
   "@folderOrganizationNone": {
     "description": "Folder option - flat structure"
   },
+  "folderOrganizationByPlaylist": "By Playlist",
+  "@folderOrganizationByPlaylist": {
+    "description": "Folder option - playlist folders"
+  },
+  "folderOrganizationByPlaylistSubtitle": "Separate folder for each playlist",
+  "@folderOrganizationByPlaylistSubtitle": {
+    "description": "Subtitle for playlist folder option"
+  },
   "folderOrganizationByArtist": "By Artist",
   "@folderOrganizationByArtist": {
     "description": "Folder option - artist folders"
