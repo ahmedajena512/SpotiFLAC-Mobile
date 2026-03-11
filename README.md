@@ -6,6 +6,12 @@
   <img alt="SpotiFLAC Mobile" src="assets/images/banner-readme-light.png" width="650" height="auto">
 </picture>
 
+<p align="center">
+  <a href="https://trendshift.io/repositories/17247">
+    <img src="https://trendshift.io/api/badge/repositories/17247" alt="zarzet%2FSpotiFLAC-Mobile | Trendshift" width="250" height="55">
+  </a>
+</p>
+
 </div>
 
 ## Screenshots
@@ -40,7 +46,7 @@ Extensions allow the community to add new music sources and features without wai
 5. Set provider priority in **Settings > Extensions > Provider Priority**
 
 ### Developing Extensions
-Want to create your own extension? Check out the [Extension Development Guide](https://zarz.moe/docs) for complete documentation.
+Want to create your own extension? Check out the [Extension Development Guide](https://zarzet.github.io/SpotiFLAC-Mobile/docs) for complete documentation.
 
 ## Other project
 
