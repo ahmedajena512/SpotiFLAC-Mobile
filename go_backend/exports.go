@@ -283,7 +283,7 @@ func enrichRequestExtendedMetadata(req *DownloadRequest) {
 		return
 	}
 
-	if req.ISRC == "" || (req.Genre != "" && req.Label != "") {
+	if req.ISRC == "" || (req.Genre != "" && req.Label != "" && req.Copyright != "") {
 		return
 	}
 
@@ -305,8 +305,11 @@ func enrichRequestExtendedMetadata(req *DownloadRequest) {
 	if req.Label == "" && extMeta.Label != "" {
 		req.Label = extMeta.Label
 	}
-	if req.Genre != "" || req.Label != "" {
-		GoLog("[DownloadWithFallback] Extended metadata ready: genre=%s, label=%s\n", req.Genre, req.Label)
+	if req.Copyright == "" && extMeta.Copyright != "" {
+		req.Copyright = extMeta.Copyright
+	}
+	if req.Genre != "" || req.Label != "" || req.Copyright != "" {
+		GoLog("[DownloadWithFallback] Extended metadata ready: genre=%s, label=%s, copyright=%s\n", req.Genre, req.Label, req.Copyright)
 	}
 }
 
@@ -1335,10 +1338,7 @@ func GetDeezerExtendedMetadata(trackID string) (string, error) {
 		return "", err
 	}
 
-	result := map[string]string{
-		"genre": metadata.Genre,
-		"label": metadata.Label,
-	}
+	result := buildDeezerExtendedMetadataResult(metadata)
 
 	jsonBytes, err := json.Marshal(result)
 	if err != nil {
@@ -1358,12 +1358,62 @@ func SearchDeezerByISRC(isrc string) (string, error) {
 		return "", err
 	}
 
-	jsonBytes, err := json.Marshal(track)
+	result := buildDeezerISRCSearchResult(track)
+	jsonBytes, err := json.Marshal(result)
 	if err != nil {
 		return "", err
 	}
 
 	return string(jsonBytes), nil
+}
+
+func buildDeezerExtendedMetadataResult(metadata *AlbumExtendedMetadata) map[string]string {
+	if metadata == nil {
+		return map[string]string{
+			"genre":     "",
+			"label":     "",
+			"copyright": "",
+		}
+	}
+
+	return map[string]string{
+		"genre":     metadata.Genre,
+		"label":     metadata.Label,
+		"copyright": metadata.Copyright,
+	}
+}
+
+func buildDeezerISRCSearchResult(track *TrackMetadata) map[string]interface{} {
+	if track == nil {
+		return map[string]interface{}{}
+	}
+
+	result := map[string]interface{}{
+		"spotify_id":    track.SpotifyID,
+		"artists":       track.Artists,
+		"name":          track.Name,
+		"album_name":    track.AlbumName,
+		"album_artist":  track.AlbumArtist,
+		"duration_ms":   track.DurationMS,
+		"images":        track.Images,
+		"release_date":  track.ReleaseDate,
+		"track_number":  track.TrackNumber,
+		"total_tracks":  track.TotalTracks,
+		"disc_number":   track.DiscNumber,
+		"external_urls": track.ExternalURL,
+		"isrc":          track.ISRC,
+		"album_id":      track.AlbumID,
+		"artist_id":     track.ArtistID,
+		"album_type":    track.AlbumType,
+	}
+
+	if deezerID := strings.TrimSpace(strings.TrimPrefix(track.SpotifyID, "deezer:")); deezerID != "" {
+		result["id"] = deezerID
+		result["track_id"] = deezerID
+		result["success"] = true
+	}
+
+	return result
 }
 
 func ConvertSpotifyToDeezer(resourceType, spotifyID string) (string, error) {
@@ -1824,8 +1874,8 @@ func ReEnrichFile(requestJSON string) (string, error) {
 			GoLog("[ReEnrich] Metadata provider search failed: %v\n", searchErr)
 		}
 
-		// Try to get extended metadata (genre, label) from Deezer if not already set
-		if found && req.ISRC != "" && (req.Genre == "" || req.Label == "") {
+		// Try to get extended metadata from Deezer if not already set
+		if found && req.ISRC != "" && (req.Genre == "" || req.Label == "" || req.Copyright == "") {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			extMeta, err := deezerClient.GetExtendedMetadataByISRC(ctx, req.ISRC)
 			cancel()
@@ -1836,7 +1886,10 @@ func ReEnrichFile(requestJSON string) (string, error) {
 				if req.Label == "" && extMeta.Label != "" {
 					req.Label = extMeta.Label
 				}
-				GoLog("[ReEnrich] Extended metadata: genre=%s, label=%s\n", req.Genre, req.Label)
+				if req.Copyright == "" && extMeta.Copyright != "" {
+					req.Copyright = extMeta.Copyright
+				}
+				GoLog("[ReEnrich] Extended metadata: genre=%s, label=%s, copyright=%s\n", req.Genre, req.Label, req.Copyright)
 			}
 		}
 

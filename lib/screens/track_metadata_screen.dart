@@ -307,11 +307,13 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
       );
 
       // Fill in album name from file tags if stored value is empty
-      final needsAlbum = resolvedAlbum != null &&
+      final needsAlbum =
+          resolvedAlbum != null &&
           resolvedAlbum.isNotEmpty &&
           (albumName.isEmpty);
       // Fill in duration from file if stored value is missing/zero
-      final needsDuration = resolvedDuration != null &&
+      final needsDuration =
+          resolvedDuration != null &&
           resolvedDuration > 0 &&
           (duration == null || duration == 0);
 
@@ -585,9 +587,9 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
   }
 
   void _showCueVirtualTrackSnackBar(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_cueVirtualTrackGuidance(context))),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(_cueVirtualTrackGuidance(context))));
   }
 
   void _hideCurrentSnackBar() {
@@ -606,17 +608,14 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
   }
 
   void _showSnackBarMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showLongSnackBarMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 60),
-      ),
+      SnackBar(content: Text(message), duration: const Duration(seconds: 60)),
     );
   }
 
@@ -1144,9 +1143,7 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
           _copyToClipboard(context, webUrl);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                context.l10n.snackbarUrlCopied(serviceName),
-              ),
+              content: Text(context.l10n.snackbarUrlCopied(serviceName)),
             ),
           );
         }
@@ -1879,16 +1876,18 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         } else {
           setState(() => _isEmbedding = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error ?? context.l10n.snackbarFailedToEmbedLyrics)),
+            SnackBar(
+              content: Text(error ?? context.l10n.snackbarFailedToEmbedLyrics),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isEmbedding = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(context.l10n.snackbarError(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.snackbarError(e.toString()))),
+        );
       }
     } finally {
       if (coverPath != null) {
@@ -2568,8 +2567,11 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                   onTap: () {
                     _closeOptionsMenuAndRun(
                       sheetContext,
-                      () =>
-                          _showEditMetadataSheet(screenContext, ref, colorScheme),
+                      () => _showEditMetadataSheet(
+                        screenContext,
+                        ref,
+                        colorScheme,
+                      ),
                     );
                   },
                 ),
@@ -3008,31 +3010,29 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                   const SizedBox(height: 16),
                   Text(
                     sheetContext.l10n.cueSplitTitle,
-                    style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(sheetContext).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     sheetContext.l10n.cueSplitAlbum(album),
-                    style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                    style: Theme.of(sheetContext).textTheme.bodyMedium
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     sheetContext.l10n.cueSplitArtist(artist),
-                    style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                    style: Theme.of(sheetContext).textTheme.bodyMedium
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     sheetContext.l10n.cueSplitTrackCount(tracks.length),
-                    style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: Theme.of(sheetContext).textTheme.bodyMedium
+                        ?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                   const SizedBox(height: 16),
                   // Track list preview (scrollable, max 200px)
@@ -3259,8 +3259,12 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
 
       // Determine output directory
       final String outputDir;
-      final treeUri = !_isLocalItem ? (_downloadItem?.downloadTreeUri ?? '') : '';
-      final relativeDir = !_isLocalItem ? (_downloadItem?.safRelativeDir ?? '') : '';
+      final treeUri = !_isLocalItem
+          ? (_downloadItem?.downloadTreeUri ?? '')
+          : '';
+      final relativeDir = !_isLocalItem
+          ? (_downloadItem?.safRelativeDir ?? '')
+          : '';
       final writeBackToSaf = isSafSource && treeUri.isNotEmpty;
       if (writeBackToSaf) {
         final tempDir = await getTemporaryDirectory();
@@ -3326,9 +3330,7 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
               // Read existing metadata first
               final metadata = await PlatformBridge.readFileMetadata(path);
               if (metadata['error'] == null) {
-                final fields = <String, String>{
-                  'cover_path': coverPath,
-                };
+                final fields = <String, String>{'cover_path': coverPath};
                 // Preserve existing fields
                 for (final entry in metadata.entries) {
                   if (entry.key == 'error' || entry.value == null) continue;
@@ -3706,6 +3708,7 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         colorScheme: colorScheme,
         initialValues: initialValues,
         filePath: cleanFilePath,
+        sourceTrackId: _spotifyId,
       ),
     );
 
@@ -3789,10 +3792,7 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     );
   }
 
-  void _closeOptionsMenuAndRun(
-    BuildContext sheetContext,
-    VoidCallback action,
-  ) {
+  void _closeOptionsMenuAndRun(BuildContext sheetContext, VoidCallback action) {
     Navigator.pop(sheetContext);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -3919,15 +3919,24 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
   }
 }
 
+class _ResolvedAutoFillTrack {
+  final Map<String, dynamic> track;
+  final String? deezerId;
+
+  const _ResolvedAutoFillTrack({required this.track, this.deezerId});
+}
+
 class _EditMetadataSheet extends StatefulWidget {
   final ColorScheme colorScheme;
   final Map<String, String> initialValues;
   final String filePath;
+  final String? sourceTrackId;
 
   const _EditMetadataSheet({
     required this.colorScheme,
     required this.initialValues,
     required this.filePath,
+    this.sourceTrackId,
   });
 
   @override
@@ -3935,6 +3944,12 @@ class _EditMetadataSheet extends StatefulWidget {
 }
 
 class _EditMetadataSheetState extends State<_EditMetadataSheet> {
+  static final RegExp _metadataCollapsePattern = RegExp(r'[^a-z0-9]+');
+  static final RegExp _metadataWhitespacePattern = RegExp(r'\s+');
+  static final RegExp _spotifyTrackIdPattern = RegExp(r'^[A-Za-z0-9]{22}$');
+  static final RegExp _deezerTrackIdPattern = RegExp(r'^\d+$');
+  static final RegExp _isrcPattern = RegExp(r'^[A-Z]{2}[A-Z0-9]{3}\d{7}$');
+
   bool _saving = false;
   bool _showAdvanced = false;
   bool _showAutoFill = false;
@@ -4152,9 +4167,9 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(context.l10n.snackbarError(e.toString()))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.snackbarError(e.toString()))),
+      );
     }
   }
 
@@ -4243,6 +4258,251 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
     });
   }
 
+  String _normalizeMetadataText(String value) {
+    final collapsed = value
+        .toLowerCase()
+        .replaceAll(_metadataCollapsePattern, ' ')
+        .trim();
+    return collapsed.replaceAll(_metadataWhitespacePattern, ' ');
+  }
+
+  bool _looksLikeIsrc(String value) {
+    return _isrcPattern.hasMatch(value.trim().toUpperCase());
+  }
+
+  String? _extractRawSpotifyTrackIdFromValue(Object? value) {
+    final raw = value?.toString().trim() ?? '';
+    if (raw.isEmpty) return null;
+
+    if (_spotifyTrackIdPattern.hasMatch(raw)) {
+      return raw;
+    }
+
+    if (raw.startsWith('spotify:')) {
+      final parts = raw.split(':');
+      final last = parts.isNotEmpty ? parts.last.trim() : '';
+      if (_spotifyTrackIdPattern.hasMatch(last)) {
+        return last;
+      }
+      return null;
+    }
+
+    final uri = Uri.tryParse(raw);
+    if (uri != null &&
+        uri.host.contains('spotify.com') &&
+        uri.pathSegments.length >= 2 &&
+        uri.pathSegments.first == 'track') {
+      final candidate = uri.pathSegments[1].trim();
+      if (_spotifyTrackIdPattern.hasMatch(candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  String? _extractRawDeezerTrackIdFromValue(Object? value) {
+    final raw = value?.toString().trim() ?? '';
+    if (raw.isEmpty) return null;
+
+    if (_deezerTrackIdPattern.hasMatch(raw)) {
+      return raw;
+    }
+
+    if (raw.startsWith('deezer:')) {
+      final parts = raw.split(':');
+      final last = parts.isNotEmpty ? parts.last.trim() : '';
+      if (_deezerTrackIdPattern.hasMatch(last)) {
+        return last;
+      }
+    }
+
+    final uri = Uri.tryParse(raw);
+    if (uri != null && uri.host.contains('deezer.com')) {
+      final trackIndex = uri.pathSegments.indexOf('track');
+      if (trackIndex >= 0 && trackIndex + 1 < uri.pathSegments.length) {
+        final candidate = uri.pathSegments[trackIndex + 1].trim();
+        if (_deezerTrackIdPattern.hasMatch(candidate)) {
+          return candidate;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  String? _extractRawSpotifyTrackId(Map<String, dynamic> track) {
+    for (final candidate in [track['spotify_id'], track['id']]) {
+      final spotifyId = _extractRawSpotifyTrackIdFromValue(candidate);
+      if (spotifyId != null) return spotifyId;
+    }
+
+    final externalLinks = track['external_links'];
+    if (externalLinks is Map) {
+      final spotifyId = _extractRawSpotifyTrackIdFromValue(
+        externalLinks['spotify'],
+      );
+      if (spotifyId != null) return spotifyId;
+    }
+
+    return null;
+  }
+
+  String? _extractRawDeezerTrackId(Map<String, dynamic> track) {
+    for (final candidate in [
+      track['deezer_id'],
+      track['spotify_id'],
+      track['id'],
+    ]) {
+      final deezerId = _extractRawDeezerTrackIdFromValue(candidate);
+      if (deezerId != null) return deezerId;
+    }
+
+    final externalLinks = track['external_links'];
+    if (externalLinks is Map) {
+      final deezerId = _extractRawDeezerTrackIdFromValue(
+        externalLinks['deezer'],
+      );
+      if (deezerId != null) return deezerId;
+    }
+
+    return null;
+  }
+
+  Map<String, dynamic> _unwrapTrackPayload(Map<String, dynamic> payload) {
+    final track = payload['track'];
+    if (track is Map<String, dynamic>) {
+      return track;
+    }
+    return payload;
+  }
+
+  void _mergeOnlineTrackData(
+    Map<String, String> enriched,
+    Map<String, dynamic> track,
+  ) {
+    void put(String key, Object? value) {
+      final text = value?.toString().trim() ?? '';
+      if (text.isNotEmpty && text != 'null') {
+        enriched[key] = text;
+      }
+    }
+
+    put('title', track['name'] ?? track['title']);
+    put('artist', track['artists'] ?? track['artist']);
+    put('album', track['album_name'] ?? track['album']);
+    put('album_artist', track['album_artist']);
+    put('date', track['release_date']);
+    put('track_number', track['track_number']);
+    put('disc_number', track['disc_number']);
+    put('isrc', track['isrc']);
+    put('genre', track['genre']);
+    put('label', track['label']);
+    put('copyright', track['copyright']);
+  }
+
+  Future<_ResolvedAutoFillTrack?> _resolveAutoFillTrackFromIdentifiers(
+    String currentIsrc,
+  ) async {
+    if (_looksLikeIsrc(currentIsrc)) {
+      final deezerTrack = await PlatformBridge.searchDeezerByISRC(currentIsrc);
+      return _ResolvedAutoFillTrack(
+        track: _unwrapTrackPayload(deezerTrack),
+        deezerId: _extractRawDeezerTrackId(deezerTrack),
+      );
+    }
+
+    final sourceTrackId = widget.sourceTrackId?.trim() ?? '';
+    if (sourceTrackId.isEmpty) {
+      return null;
+    }
+
+    final deezerId = _extractRawDeezerTrackIdFromValue(sourceTrackId);
+    if (deezerId != null) {
+      final deezerTrack = await PlatformBridge.getDeezerMetadata(
+        'track',
+        deezerId,
+      );
+      return _ResolvedAutoFillTrack(
+        track: _unwrapTrackPayload(deezerTrack),
+        deezerId: deezerId,
+      );
+    }
+
+    final spotifyId = _extractRawSpotifyTrackIdFromValue(sourceTrackId);
+    if (spotifyId != null) {
+      final deezerTrack = await PlatformBridge.convertSpotifyToDeezer(
+        'track',
+        spotifyId,
+      );
+      final track = _unwrapTrackPayload(deezerTrack);
+      return _ResolvedAutoFillTrack(
+        track: track,
+        deezerId:
+            _extractRawDeezerTrackId(track) ??
+            _extractRawDeezerTrackId(deezerTrack),
+      );
+    }
+
+    return null;
+  }
+
+  int _metadataMatchScore(
+    Map<String, dynamic> track, {
+    required String currentTitle,
+    required String currentArtist,
+    required String currentAlbum,
+    required String currentIsrc,
+  }) {
+    var score = 0;
+
+    final candidateIsrc = (track['isrc']?.toString() ?? '')
+        .trim()
+        .toUpperCase();
+    if (currentIsrc.isNotEmpty && candidateIsrc == currentIsrc) {
+      score += 10000;
+    }
+
+    final candidateTitle = _normalizeMetadataText(
+      (track['name'] ?? track['title'] ?? '').toString(),
+    );
+    final candidateArtist = _normalizeMetadataText(
+      (track['artists'] ?? track['artist'] ?? '').toString(),
+    );
+    final candidateAlbum = _normalizeMetadataText(
+      (track['album_name'] ?? track['album'] ?? '').toString(),
+    );
+
+    if (currentTitle.isNotEmpty && candidateTitle.isNotEmpty) {
+      if (candidateTitle == currentTitle) {
+        score += 400;
+      } else if (candidateTitle.contains(currentTitle) ||
+          currentTitle.contains(candidateTitle)) {
+        score += 180;
+      }
+    }
+
+    if (currentArtist.isNotEmpty && candidateArtist.isNotEmpty) {
+      if (candidateArtist == currentArtist) {
+        score += 320;
+      } else if (candidateArtist.contains(currentArtist) ||
+          currentArtist.contains(candidateArtist)) {
+        score += 140;
+      }
+    }
+
+    if (currentAlbum.isNotEmpty && candidateAlbum.isNotEmpty) {
+      if (candidateAlbum == currentAlbum) {
+        score += 120;
+      } else if (candidateAlbum.contains(currentAlbum) ||
+          currentAlbum.contains(candidateAlbum)) {
+        score += 50;
+      }
+    }
+
+    return score;
+  }
+
   Future<void> _fetchAndFill() async {
     if (_autoFillFields.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -4254,117 +4514,137 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
     setState(() => _fetching = true);
 
     try {
-      // Build search query from current field values
       final title = _titleCtrl.text.trim();
       final artist = _artistCtrl.text.trim();
       final album = _albumCtrl.text.trim();
+      final currentIsrc = _isrcCtrl.text.trim().toUpperCase();
+      Map<String, dynamic>? best;
+      String? deezerId;
+
+      try {
+        final resolved = await _resolveAutoFillTrackFromIdentifiers(
+          currentIsrc,
+        );
+        if (resolved != null) {
+          best = resolved.track;
+          deezerId = resolved.deezerId;
+        }
+      } catch (e) {
+        _log.w('Identifier-first autofill lookup failed: $e');
+      }
+
       final queryParts = <String>[];
       if (title.isNotEmpty) queryParts.add(title);
       if (artist.isNotEmpty) queryParts.add(artist);
-      if (album.isNotEmpty) queryParts.add(album);
+      if (queryParts.isEmpty && album.isNotEmpty) queryParts.add(album);
 
-      if (queryParts.isEmpty) {
+      if (best == null && queryParts.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.l10n.editMetadataAutoFillNoResults),
-            ),
+            SnackBar(content: Text(context.l10n.editMetadataAutoFillNoResults)),
           );
         }
         return;
       }
 
-      final query = queryParts.join(' ');
-      final results = await PlatformBridge.searchTracksWithMetadataProviders(
-        query,
-        limit: 5,
-      );
+      final normalizedTitle = _normalizeMetadataText(title);
+      final normalizedArtist = _normalizeMetadataText(artist);
+      final normalizedAlbum = _normalizeMetadataText(album);
 
-      if (!mounted) return;
-
-      if (results.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.editMetadataAutoFillNoResults)),
+      if (best == null) {
+        final query = queryParts.join(' ');
+        final results = await PlatformBridge.searchTracksWithMetadataProviders(
+          query,
+          limit: 5,
         );
-        return;
-      }
 
-      // Pick best match: prefer ISRC match, then first result
-      final currentIsrc = _isrcCtrl.text.trim().toUpperCase();
-      Map<String, dynamic>? best;
-      if (currentIsrc.isNotEmpty) {
-        for (final r in results) {
-          final candidateIsrc =
-              (r['isrc']?.toString() ?? '').trim().toUpperCase();
-          if (candidateIsrc == currentIsrc) {
-            best = r;
-            break;
+        if (!mounted) return;
+
+        if (results.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.l10n.editMetadataAutoFillNoResults)),
+          );
+          return;
+        }
+
+        // Pick best match using current metadata, not only provider order.
+        best = results.first;
+        var bestScore = -1;
+        for (final result in results) {
+          final score = _metadataMatchScore(
+            result,
+            currentTitle: normalizedTitle,
+            currentArtist: normalizedArtist,
+            currentAlbum: normalizedAlbum,
+            currentIsrc: currentIsrc,
+          );
+          if (score > bestScore) {
+            bestScore = score;
+            best = result;
           }
         }
       }
-      best ??= results.first;
+
+      final selectedBest = best;
+      if (selectedBest == null) {
+        throw StateError('No metadata match resolved for auto-fill');
+      }
 
       // Extract basic metadata from search result
       final enriched = <String, String>{
-        'title': (best['name'] ?? '').toString(),
-        'artist': (best['artists'] ?? best['artist'] ?? '').toString(),
-        'album': (best['album_name'] ?? best['album'] ?? '').toString(),
-        'album_artist': (best['album_artist'] ?? '').toString(),
-        'date': (best['release_date'] ?? '').toString(),
-        'track_number': (best['track_number'] ?? '').toString(),
-        'disc_number': (best['disc_number'] ?? '').toString(),
-        'isrc': (best['isrc'] ?? '').toString(),
+        'title': (selectedBest['name'] ?? '').toString(),
+        'artist': (selectedBest['artists'] ?? selectedBest['artist'] ?? '')
+            .toString(),
+        'album': (selectedBest['album_name'] ?? selectedBest['album'] ?? '')
+            .toString(),
+        'album_artist': (selectedBest['album_artist'] ?? '').toString(),
+        'date': (selectedBest['release_date'] ?? '').toString(),
+        'track_number': (selectedBest['track_number'] ?? '').toString(),
+        'disc_number': (selectedBest['disc_number'] ?? '').toString(),
+        'isrc': (selectedBest['isrc'] ?? '').toString(),
       };
+      _mergeOnlineTrackData(enriched, selectedBest);
 
-      final needsIsrc = _autoFillFields.contains('isrc') &&
-          enriched['isrc']!.isEmpty;
-      final needsExtended = _autoFillFields.contains('genre') ||
+      final needsIsrc =
+          _autoFillFields.contains('isrc') && enriched['isrc']!.isEmpty;
+      final needsExtended =
+          _autoFillFields.contains('genre') ||
           _autoFillFields.contains('label') ||
           _autoFillFields.contains('copyright');
 
-      final trackId =
-          (best['spotify_id'] ?? best['id'] ?? '').toString();
-      final source =
-          (best['source'] ?? best['provider_id'] ?? '').toString();
-      final isDeezerSource = source.toLowerCase().contains('deezer');
+      final rawSpotifyId = _extractRawSpotifyTrackId(selectedBest);
 
-      // Resolve Deezer track ID for extended metadata + ISRC
-      String? deezerId;
+      deezerId ??= _extractRawDeezerTrackId(selectedBest);
+      final candidateIsrc = enriched['isrc']!.trim().toUpperCase();
+      final deezerLookupIsrc = _looksLikeIsrc(currentIsrc)
+          ? currentIsrc
+          : (_looksLikeIsrc(candidateIsrc) ? candidateIsrc : '');
 
-      if ((needsIsrc || needsExtended) && trackId.isNotEmpty) {
+      if (needsIsrc || needsExtended) {
         try {
-          if (isDeezerSource) {
-            // Source is Deezer — trackId is already a Deezer ID
-            deezerId = trackId;
-          } else {
-            // Source is Spotify/extension — convert to Deezer via SongLink
+          if (deezerId == null && deezerLookupIsrc.isNotEmpty) {
+            final deezerResult = await PlatformBridge.searchDeezerByISRC(
+              deezerLookupIsrc,
+            );
+            deezerId = _extractRawDeezerTrackId(deezerResult);
+            _mergeOnlineTrackData(enriched, deezerResult);
+          }
+
+          if (deezerId == null && rawSpotifyId != null) {
+            // Spotify IDs can be mapped through SongLink to a Deezer track.
             final deezerData = await PlatformBridge.convertSpotifyToDeezer(
               'track',
-              trackId,
+              rawSpotifyId,
             );
             final trackData = deezerData['track'];
             if (trackData is Map<String, dynamic>) {
-              final rawId = trackData['spotify_id'] as String?;
-              if (rawId != null && rawId.startsWith('deezer:')) {
-                deezerId = rawId.split(':')[1];
-              }
-              // Also grab ISRC and release_date from the conversion response
-              final convIsrc = (trackData['isrc'] ?? '').toString().trim();
-              if (convIsrc.isNotEmpty && enriched['isrc']!.isEmpty) {
-                enriched['isrc'] = convIsrc;
-              }
-              final convDate =
-                  (trackData['release_date'] ?? '').toString().trim();
-              if (convDate.isNotEmpty && enriched['date']!.isEmpty) {
-                enriched['date'] = convDate;
-              }
+              deezerId = _extractRawDeezerTrackId(trackData);
+              _mergeOnlineTrackData(enriched, trackData);
             }
-            // Fallback: legacy ID format
-            deezerId ??= (deezerData['id'] ?? '').toString();
-            if (deezerId.isEmpty) deezerId = null;
+            deezerId ??= _extractRawDeezerTrackId(deezerData);
           }
         } catch (_) {
-          // SongLink conversion is best-effort
+          // Deezer resolution is best-effort
         }
       }
 
@@ -4377,7 +4657,9 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
             'track',
             deezerId,
           );
-          final deezerIsrc = (deezerMeta['isrc'] ?? '').toString().trim();
+          final trackData = _unwrapTrackPayload(deezerMeta);
+          _mergeOnlineTrackData(enriched, trackData);
+          final deezerIsrc = (trackData['isrc'] ?? '').toString().trim();
           if (deezerIsrc.isNotEmpty) {
             enriched['isrc'] = deezerIsrc;
           }
@@ -4402,29 +4684,6 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
         }
       }
 
-      // Fallback: if still no Deezer ID but we have ISRC, try ISRC lookup
-      if (needsExtended &&
-          deezerId == null &&
-          enriched['isrc']!.isNotEmpty) {
-        try {
-          final deezerResult = await PlatformBridge.searchDeezerByISRC(
-            enriched['isrc']!,
-          );
-          final fallbackId =
-              (deezerResult['id'] ?? deezerResult['track_id'] ?? '')
-                  .toString();
-          if (fallbackId.isNotEmpty) {
-            final extended =
-                await PlatformBridge.getDeezerExtendedMetadata(fallbackId);
-            if (extended != null) {
-              enriched['genre'] = extended['genre'] ?? '';
-              enriched['label'] = extended['label'] ?? '';
-              enriched['copyright'] = extended['copyright'] ?? '';
-            }
-          }
-        } catch (_) {}
-      }
-
       if (!mounted) return;
 
       // Apply selected fields to controllers
@@ -4432,7 +4691,10 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
       for (final key in _autoFillFields) {
         if (key == 'cover') continue; // Handle cover separately below
         final value = enriched[key];
-        if (value != null && value.isNotEmpty && value != '0' && value != 'null') {
+        if (value != null &&
+            value.isNotEmpty &&
+            value != '0' &&
+            value != 'null') {
           final ctrl = _controllerForKey(key);
           if (ctrl != null) {
             ctrl.text = value;
@@ -4444,7 +4706,8 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
       // Handle cover art download
       if (_autoFillFields.contains('cover')) {
         final coverUrl =
-            (best['cover_url'] ?? best['images'] ?? '').toString();
+            (selectedBest['cover_url'] ?? selectedBest['images'] ?? '')
+                .toString();
         if (coverUrl.isNotEmpty) {
           try {
             final tempDir = await Directory.systemTemp.createTemp(
@@ -4494,9 +4757,7 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.snackbarError(e.toString())),
-          ),
+          SnackBar(content: Text(context.l10n.snackbarError(e.toString()))),
         );
       }
     } finally {
@@ -4722,9 +4983,9 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(context.l10n.snackbarError(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.snackbarError(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -4882,11 +5143,7 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.travel_explore,
-                      size: 20,
-                      color: cs.primary,
-                    ),
+                    Icon(Icons.travel_explore, size: 20, color: cs.primary),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -4911,9 +5168,9 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
                   context.l10n.editMetadataAutoFillDesc,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ),
               const SizedBox(height: 8),
@@ -4976,18 +5233,13 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
               const SizedBox(height: 10),
               // Fetch button
               Padding(
-                padding: const EdgeInsets.only(
-                  left: 12,
-                  right: 12,
-                  bottom: 12,
-                ),
+                padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
                 child: SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed:
-                        (_fetching || _saving || _autoFillFields.isEmpty)
-                            ? null
-                            : _fetchAndFill,
+                    onPressed: (_fetching || _saving || _autoFillFields.isEmpty)
+                        ? null
+                        : _fetchAndFill,
                     icon: _fetching
                         ? const SizedBox(
                             width: 16,
@@ -5029,9 +5281,9 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
         ),
         child: Text(
           label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: cs.primary,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: cs.primary),
         ),
       ),
     );
