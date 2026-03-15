@@ -1065,8 +1065,9 @@ func DownloadWithExtensionFallback(req DownloadRequest) (*DownloadResponse, erro
 			GoLog("[DownloadWithExtensionFallback] Metadata provider search failed (non-fatal): %v\n", searchErr)
 		}
 
-		// Try Deezer extended metadata for genre/label if we have ISRC
-		if req.ISRC != "" && (req.Genre == "" || req.Label == "") {
+		// Try Deezer extended metadata if we have ISRC
+		if req.ISRC != "" &&
+			(req.Genre == "" || req.Label == "" || req.Copyright == "") {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			extMeta, err := GetDeezerClient().GetExtendedMetadataByISRC(ctx, req.ISRC)
 			cancel()
@@ -1077,7 +1078,10 @@ func DownloadWithExtensionFallback(req DownloadRequest) (*DownloadResponse, erro
 				if req.Label == "" && extMeta.Label != "" {
 					req.Label = extMeta.Label
 				}
-				GoLog("[DownloadWithExtensionFallback] Extended metadata from Deezer: genre=%s, label=%s\n", req.Genre, req.Label)
+				if req.Copyright == "" && extMeta.Copyright != "" {
+					req.Copyright = extMeta.Copyright
+				}
+				GoLog("[DownloadWithExtensionFallback] Extended metadata from Deezer: genre=%s, label=%s, copyright=%s\n", req.Genre, req.Label, req.Copyright)
 			}
 		}
 	}
@@ -1249,7 +1253,8 @@ func DownloadWithExtensionFallback(req DownloadRequest) (*DownloadResponse, erro
 		GoLog("[DownloadWithExtensionFallback] Trying provider: %s\n", providerID)
 
 		if isBuiltInProvider(providerIDNormalized) {
-			if (req.Genre == "" || req.Label == "") && req.ISRC != "" {
+			if (req.Genre == "" || req.Label == "" || req.Copyright == "") &&
+				req.ISRC != "" {
 				GoLog("[DownloadWithExtensionFallback] Enriching extended metadata from Deezer for ISRC: %s\n", req.ISRC)
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				deezerClient := GetDeezerClient()
@@ -1263,6 +1268,10 @@ func DownloadWithExtensionFallback(req DownloadRequest) (*DownloadResponse, erro
 					if req.Label == "" && extMeta.Label != "" {
 						req.Label = extMeta.Label
 						GoLog("[DownloadWithExtensionFallback] Label from Deezer: %s\n", req.Label)
+					}
+					if req.Copyright == "" && extMeta.Copyright != "" {
+						req.Copyright = extMeta.Copyright
+						GoLog("[DownloadWithExtensionFallback] Copyright from Deezer: %s\n", req.Copyright)
 					}
 				} else if err != nil {
 					GoLog("[DownloadWithExtensionFallback] Failed to get extended metadata from Deezer: %v\n", err)
