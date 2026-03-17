@@ -626,11 +626,13 @@ class _LocalAlbumScreenState extends ConsumerState<LocalAlbumScreen> {
 
       slivers.add(
         SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) =>
-                _buildTrackItem(context, colorScheme, discTracks[index]),
-            childCount: discTracks.length,
-          ),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final track = discTracks[index];
+            return KeyedSubtree(
+              key: ValueKey(track.id),
+              child: _buildTrackItem(context, colorScheme, track),
+            );
+          }, childCount: discTracks.length),
         ),
       );
     }
@@ -900,16 +902,19 @@ class _LocalAlbumScreenState extends ConsumerState<LocalAlbumScreen> {
     return false;
   }
 
-  Future<void> _queueSelectedAsFlac(List<LocalLibraryItem> allTracks) async {
+  List<LocalLibraryItem> _selectedFlacEligibleItems(
+    List<LocalLibraryItem> allTracks,
+  ) {
     final tracksById = {for (final t in allTracks) t.id: t};
-    final selected = <LocalLibraryItem>[];
+    return _selectedIds
+        .map((id) => tracksById[id])
+        .whereType<LocalLibraryItem>()
+        .where(LocalTrackRedownloadService.isFlacUpgradeEligible)
+        .toList(growable: false);
+  }
 
-    for (final id in _selectedIds) {
-      final item = tracksById[id];
-      if (item != null) {
-        selected.add(item);
-      }
-    }
+  Future<void> _queueSelectedAsFlac(List<LocalLibraryItem> allTracks) async {
+    final selected = _selectedFlacEligibleItems(allTracks);
 
     if (selected.isEmpty) {
       return;
@@ -962,9 +967,7 @@ class _LocalAlbumScreenState extends ConsumerState<LocalAlbumScreen> {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            context.l10n.queueFlacFindingProgress(i + 1, total),
-          ),
+          content: Text(context.l10n.queueFlacFindingProgress(i + 1, total)),
           duration: const Duration(seconds: 30),
         ),
       );
@@ -1177,8 +1180,9 @@ class _LocalAlbumScreenState extends ConsumerState<LocalAlbumScreen> {
     String selectedFormat = formats.first;
     bool isLosslessTarget =
         selectedFormat == 'ALAC' || selectedFormat == 'FLAC';
-    String selectedBitrate =
-        isLosslessTarget ? '320k' : (selectedFormat == 'Opus' ? '128k' : '320k');
+    String selectedBitrate = isLosslessTarget
+        ? '320k'
+        : (selectedFormat == 'Opus' ? '128k' : '320k');
 
     showModalBottomSheet(
       context: context,
@@ -1240,8 +1244,9 @@ class _LocalAlbumScreenState extends ConsumerState<LocalAlbumScreen> {
                                 isLosslessTarget =
                                     format == 'ALAC' || format == 'FLAC';
                                 if (!isLosslessTarget) {
-                                  selectedBitrate =
-                                      format == 'Opus' ? '128k' : '320k';
+                                  selectedBitrate = format == 'Opus'
+                                      ? '128k'
+                                      : '320k';
                                 }
                               });
                             }
@@ -1286,11 +1291,8 @@ class _LocalAlbumScreenState extends ConsumerState<LocalAlbumScreen> {
                           const SizedBox(width: 6),
                           Text(
                             context.l10n.trackConvertLosslessHint,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodySmall?.copyWith(
-                              color: colorScheme.primary,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colorScheme.primary),
                           ),
                         ],
                       ),
@@ -1371,7 +1373,8 @@ class _LocalAlbumScreenState extends ConsumerState<LocalAlbumScreen> {
       if (currentFormat == null || currentFormat == targetFormat) continue;
       // Skip lossy sources when target is lossless (pointless re-encoding)
       final isLosslessTarget = targetFormat == 'ALAC' || targetFormat == 'FLAC';
-      final isLosslessSource = currentFormat == 'FLAC' || currentFormat == 'M4A';
+      final isLosslessSource =
+          currentFormat == 'FLAC' || currentFormat == 'M4A';
       if (isLosslessTarget && !isLosslessSource) continue;
       selected.add(item);
     }
@@ -1656,6 +1659,7 @@ class _LocalAlbumScreenState extends ConsumerState<LocalAlbumScreen> {
     double bottomPadding,
   ) {
     final selectedCount = _selectedIds.length;
+    final flacEligibleCount = _selectedFlacEligibleItems(tracks).length;
     final allSelected = selectedCount == tracks.length && tracks.isNotEmpty;
 
     return Container(
@@ -1750,8 +1754,9 @@ class _LocalAlbumScreenState extends ConsumerState<LocalAlbumScreen> {
                   Expanded(
                     child: _LocalAlbumSelectionActionButton(
                       icon: Icons.download_for_offline_outlined,
-                      label: '${context.l10n.queueFlacAction} ($selectedCount)',
-                      onPressed: selectedCount > 0
+                      label:
+                          '${context.l10n.queueFlacAction} ($flacEligibleCount)',
+                      onPressed: flacEligibleCount > 0
                           ? () => _queueSelectedAsFlac(tracks)
                           : null,
                       colorScheme: colorScheme,

@@ -4484,14 +4484,21 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     return false;
   }
 
+  List<LocalLibraryItem> _selectedFlacEligibleLocalItems(
+    List<UnifiedLibraryItem> allItems,
+  ) {
+    final selectedItems = _selectedItemsFromAll(allItems);
+    return selectedItems
+        .map((item) => item.localItem)
+        .whereType<LocalLibraryItem>()
+        .where(LocalTrackRedownloadService.isFlacUpgradeEligible)
+        .toList(growable: false);
+  }
+
   Future<void> _queueSelectedLocalAsFlac(
     List<UnifiedLibraryItem> allItems,
   ) async {
-    final selectedItems = _selectedItemsFromAll(allItems);
-    final selectedLocalItems = selectedItems
-        .map((item) => item.localItem)
-        .whereType<LocalLibraryItem>()
-        .toList(growable: false);
+    final selectedLocalItems = _selectedFlacEligibleLocalItems(allItems);
 
     if (selectedLocalItems.isEmpty) {
       return;
@@ -4546,9 +4553,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            context.l10n.queueFlacFindingProgress(i + 1, total),
-          ),
+          content: Text(context.l10n.queueFlacFindingProgress(i + 1, total)),
           duration: const Duration(seconds: 30),
         ),
       );
@@ -4797,8 +4802,9 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     String selectedFormat = formats.first;
     bool isLosslessTarget =
         selectedFormat == 'ALAC' || selectedFormat == 'FLAC';
-    String selectedBitrate =
-        isLosslessTarget ? '320k' : (selectedFormat == 'Opus' ? '128k' : '320k');
+    String selectedBitrate = isLosslessTarget
+        ? '320k'
+        : (selectedFormat == 'Opus' ? '128k' : '320k');
     var didStartConversion = false;
 
     _hideSelectionOverlay();
@@ -4864,8 +4870,9 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                                 isLosslessTarget =
                                     format == 'ALAC' || format == 'FLAC';
                                 if (!isLosslessTarget) {
-                                  selectedBitrate =
-                                      format == 'Opus' ? '128k' : '320k';
+                                  selectedBitrate = format == 'Opus'
+                                      ? '128k'
+                                      : '320k';
                                 }
                               });
                             }
@@ -4910,11 +4917,8 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                           const SizedBox(width: 6),
                           Text(
                             context.l10n.trackConvertLosslessHint,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodySmall?.copyWith(
-                              color: colorScheme.primary,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colorScheme.primary),
                           ),
                         ],
                       ),
@@ -5054,7 +5058,8 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     int successCount = 0;
     final total = selectedItems.length;
     final historyDb = HistoryDatabase.instance;
-    final newQuality = (targetFormat.toUpperCase() == 'ALAC' ||
+    final newQuality =
+        (targetFormat.toUpperCase() == 'ALAC' ||
             targetFormat.toUpperCase() == 'FLAC')
         ? '${targetFormat.toUpperCase()} Lossless'
         : '${targetFormat.toUpperCase()} ${bitrate.trim().toLowerCase()}';
@@ -5375,6 +5380,9 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     final allSelected =
         selectedCount == unifiedItems.length && unifiedItems.isNotEmpty;
     final localOnlySelection = _isLocalOnlySelection(unifiedItems);
+    final flacEligibleCount = _selectedFlacEligibleLocalItems(
+      unifiedItems,
+    ).length;
 
     return Container(
       decoration: BoxDecoration(
@@ -5469,8 +5477,8 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                       child: _SelectionActionButton(
                         icon: Icons.download_for_offline_outlined,
                         label:
-                            '${context.l10n.queueFlacAction} ($selectedCount)',
-                        onPressed: selectedCount > 0
+                            '${context.l10n.queueFlacAction} ($flacEligibleCount)',
+                        onPressed: flacEligibleCount > 0
                             ? () => _queueSelectedLocalAsFlac(unifiedItems)
                             : null,
                         colorScheme: colorScheme,

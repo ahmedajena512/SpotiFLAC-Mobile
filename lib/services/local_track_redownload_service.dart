@@ -23,6 +23,15 @@ class LocalTrackRedownloadService {
   static const int _minimumConfidenceScore = 85;
   static const int _ambiguousScoreGap = 8;
 
+  static bool isFlacUpgradeEligible(LocalLibraryItem item) {
+    final format = item.format?.trim().toLowerCase();
+    if (format == 'flac') {
+      return false;
+    }
+
+    return !item.filePath.toLowerCase().endsWith('.flac');
+  }
+
   static Future<LocalTrackRedownloadResolution> resolveBestMatch(
     LocalLibraryItem item, {
     required bool includeExtensions,
