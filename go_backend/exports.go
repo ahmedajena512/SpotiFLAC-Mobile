@@ -48,7 +48,6 @@ func CheckAvailability(spotifyID, isrc string) (string, error) {
 }
 
 // SetSongLinkNetworkOptions is kept for backward compatibility.
-// It now applies global network compatibility options for all backend API requests.
 func SetSongLinkNetworkOptions(allowHTTP, insecureTLS bool) {
 	SetNetworkCompatibilityOptions(allowHTTP, insecureTLS)
 }
@@ -910,7 +909,6 @@ func EditFileMetadata(filePath, metadataJSON string) (string, error) {
 		return string(jsonBytes), nil
 	}
 
-	// MP3/Opus: return metadata for Dart-side FFmpeg embedding
 	resp := map[string]any{
 		"success": true,
 		"method":  "ffmpeg",

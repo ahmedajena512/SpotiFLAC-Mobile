@@ -10,7 +10,7 @@ class AppInfo {
   /// Shows "Internal" in debug builds, actual version in release.
   static String get displayVersion => kDebugMode ? 'Internal' : version;
 
-  static const String appName = 'SpotiFLAC';
+  static const String appName = 'SpotiFLAC Mobile';
   static const String copyright = '© 2026 SpotiFLAC';
 
   static const String mobileAuthor = 'zarzet';

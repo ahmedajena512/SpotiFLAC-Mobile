@@ -542,7 +542,6 @@ func searchYouTubeMusicViaExtension(artistName, trackName string) string {
 	extManager := GetExtensionManager()
 	searchProviders := extManager.GetSearchProviders()
 
-	// Find the ytmusic-spotiflac extension
 	var ytProvider *ExtensionProviderWrapper
 	for _, p := range searchProviders {
 		if p.extension.ID == "ytmusic-spotiflac" {
@@ -569,7 +568,6 @@ func searchYouTubeMusicViaExtension(artistName, trackName string) string {
 		return ""
 	}
 
-	// Find the first track result (item_type == "track" with a valid video ID)
 	for _, track := range results {
 		if track.ItemType != "" && track.ItemType != "track" {
 			continue
@@ -610,7 +608,6 @@ func downloadFromYouTube(req DownloadRequest) (YouTubeDownloadResult, error) {
 		}
 	}
 
-	// Fallback: Try Spotify ID via SongLink
 	if youtubeURL == "" && req.SpotifyID != "" && !isYouTubeVideoID(req.SpotifyID) {
 		GoLog("[YouTube] Looking up YouTube URL via SongLink for Spotify ID: %s\n", req.SpotifyID)
 		songlink := NewSongLinkClient()
@@ -622,7 +619,6 @@ func downloadFromYouTube(req DownloadRequest) (YouTubeDownloadResult, error) {
 		}
 	}
 
-	// Fallback: Try Deezer ID via SongLink
 	if youtubeURL == "" && req.DeezerID != "" {
 		GoLog("[YouTube] Looking up YouTube URL via SongLink for Deezer ID: %s\n", req.DeezerID)
 		songlink := NewSongLinkClient()
@@ -634,7 +630,6 @@ func downloadFromYouTube(req DownloadRequest) (YouTubeDownloadResult, error) {
 		}
 	}
 
-	// Fallback: Try ISRC via SongLink
 	if youtubeURL == "" && req.ISRC != "" {
 		GoLog("[YouTube] Looking up YouTube URL via SongLink for ISRC: %s\n", req.ISRC)
 		songlink := NewSongLinkClient()

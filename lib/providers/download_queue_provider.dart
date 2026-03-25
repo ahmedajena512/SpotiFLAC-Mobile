@@ -874,8 +874,9 @@ class DownloadHistoryNotifier extends Notifier<DownloadHistoryState> {
     await _db.upsert(updated.toJson());
   }
 
-  /// Remove history entries where the file no longer exists on disk
-  /// Returns the number of orphaned entries removed
+  /// Remove history entries where the file no longer exists on disk.
+  /// Returns the number of orphaned entries removed.
+
   /// Audio file extensions that the app commonly produces or converts between.
   static const _audioExtensions = [
     '.flac',
@@ -891,7 +892,6 @@ class DownloadHistoryNotifier extends Notifier<DownloadHistoryState> {
   /// different audio extension exists (e.g. the user converted .flac → .opus).
   /// Returns the path of the first match found, or `null` if none exist.
   Future<String?> _findConvertedSibling(String originalPath) async {
-    // Strip the current extension to get the base path.
     final dotIndex = originalPath.lastIndexOf('.');
     if (dotIndex < 0) return null;
     final basePath = originalPath.substring(0, dotIndex);

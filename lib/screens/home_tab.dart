@@ -3124,16 +3124,6 @@ class _HomeTabState extends ConsumerState<HomeTab>
                   _triggerSearchWithFilter(null);
                 },
                 showCheckmark: false,
-                selectedColor: colorScheme.primaryContainer,
-                backgroundColor: colorScheme.surfaceContainerHighest,
-                labelStyle: TextStyle(
-                  color: selectedFilter == null
-                      ? colorScheme.onPrimaryContainer
-                      : colorScheme.onSurfaceVariant,
-                  fontWeight: selectedFilter == null
-                      ? FontWeight.w600
-                      : FontWeight.normal,
-                ),
               ),
             ),
             ...filters.map((filter) {
@@ -3148,24 +3138,8 @@ class _HomeTabState extends ConsumerState<HomeTab>
                     _triggerSearchWithFilter(filter.id);
                   },
                   showCheckmark: false,
-                  selectedColor: colorScheme.primaryContainer,
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  labelStyle: TextStyle(
-                    color: isSelected
-                        ? colorScheme.onPrimaryContainer
-                        : colorScheme.onSurfaceVariant,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                  ),
                   avatar: filter.icon != null
-                      ? Icon(
-                          _getFilterIcon(filter.icon!),
-                          size: 18,
-                          color: isSelected
-                              ? colorScheme.onPrimaryContainer
-                              : colorScheme.onSurfaceVariant,
-                        )
+                      ? Icon(_getFilterIcon(filter.icon!), size: 18)
                       : null,
                 ),
               );
@@ -3220,15 +3194,11 @@ class _HomeTabState extends ConsumerState<HomeTab>
         fillColor: colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(
-            color: colorScheme.outline.withValues(alpha: 0.5),
-          ),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(
-            color: colorScheme.outline.withValues(alpha: 0.5),
-          ),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
@@ -3276,6 +3246,9 @@ class _HomeTabState extends ConsumerState<HomeTab>
         ),
       ),
       onSubmitted: (_) => _onSearchSubmitted(),
+      onTapOutside: (_) {
+        FocusScope.of(context).unfocus();
+      },
     );
   }
 

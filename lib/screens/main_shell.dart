@@ -31,9 +31,11 @@ class MainShell extends ConsumerStatefulWidget {
   ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends ConsumerState<MainShell> {
+class _MainShellState extends ConsumerState<MainShell>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   late final PageController _pageController;
+  late final AnimationController _tabJumpTransitionController;
   bool _hasCheckedUpdate = false;
   StreamSubscription<String>? _shareSubscription;
   DateTime? _lastBackPress;
@@ -48,6 +50,11 @@ class _MainShellState extends ConsumerState<MainShell> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _currentIndex);
+    _tabJumpTransitionController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+      value: 1,
+    );
     ShellNavigationService.syncState(
       currentTabIndex: _currentIndex,
       showStoreTab: false,
@@ -229,6 +236,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   void dispose() {
     _shareSubscription?.cancel();
     _pageController.dispose();
+    _tabJumpTransitionController.dispose();
     super.dispose();
   }
 
@@ -251,6 +259,8 @@ class _MainShellState extends ConsumerState<MainShell> {
     }
 
     if (_currentIndex != index) {
+      final previousIndex = _currentIndex;
+      final isNonAdjacentJump = (previousIndex - index).abs() > 1;
       final shouldResetHome = index == 0;
       HapticFeedback.selectionClick();
       setState(() => _currentIndex = index);
@@ -265,11 +275,19 @@ class _MainShellState extends ConsumerState<MainShell> {
       if (shouldResetHome) {
         _resetHomeToMain();
       }
-      _pageController.animateToPage(
-        index,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutCubic,
-      );
+      // Jump directly when skipping intermediate tabs to avoid
+      // sliding through them. For those jumps, keep a short fade-in
+      // so the transition still feels intentional.
+      if (isNonAdjacentJump) {
+        _pageController.jumpToPage(index);
+        _tabJumpTransitionController.forward(from: 0);
+      } else {
+        _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+        );
+      }
     }
   }
 
@@ -504,15 +522,27 @@ class _MainShellState extends ConsumerState<MainShell> {
         return true;
       },
       child: Scaffold(
-        body: PageView.builder(
-          controller: _pageController,
-          itemCount: tabs.length,
-          onPageChanged: _onPageChanged,
-          physics: const NeverScrollableScrollPhysics(),
-          itemBuilder: (context, index) => _KeepAliveTabPage(
-            key: ValueKey('page-$index'),
-            child: tabs[index],
+        body: AnimatedBuilder(
+          animation: _tabJumpTransitionController,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: tabs.length,
+            onPageChanged: _onPageChanged,
+            physics: const NeverScrollableScrollPhysics(),
+            itemBuilder: (context, index) => _KeepAliveTabPage(
+              key: ValueKey('page-$index'),
+              child: tabs[index],
+            ),
           ),
+          builder: (context, child) {
+            final t = Curves.easeOutCubic.transform(
+              _tabJumpTransitionController.value,
+            );
+            return Opacity(
+              opacity: t,
+              child: Transform.scale(scale: 0.985 + (0.015 * t), child: child),
+            );
+          },
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _currentIndex.clamp(0, maxIndex),
