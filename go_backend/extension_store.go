@@ -97,8 +97,8 @@ type StoreExtensionResponse struct {
 	HasUpdate        bool     `json:"has_update"`
 }
 
-func (e *StoreExtension) ToResponse() StoreExtensionResponse {
-	return StoreExtensionResponse{
+func (e *StoreExtension) ToResponse() *StoreExtensionResponse {
+	return &StoreExtensionResponse{
 		ID:            e.ID,
 		Name:          e.Name,
 		DisplayName:   e.getDisplayName(),
@@ -289,8 +289,8 @@ func (s *ExtensionStore) FetchRegistry(forceRefresh bool) (*StoreRegistry, error
 	return &registry, nil
 }
 
-func (s *ExtensionStore) GetExtensionsWithStatus() ([]StoreExtensionResponse, error) {
-	registry, err := s.FetchRegistry(false)
+func (s *ExtensionStore) getExtensionsWithStatus(forceRefresh bool) ([]*StoreExtensionResponse, error) {
+	registry, err := s.FetchRegistry(forceRefresh)
 	if err != nil {
 		return nil, err
 	}
@@ -304,20 +304,27 @@ func (s *ExtensionStore) GetExtensionsWithStatus() ([]StoreExtensionResponse, er
 		}
 	}
 
-	result := make([]StoreExtensionResponse, len(registry.Extensions))
-	for i, ext := range registry.Extensions {
-		resp := ext.ToResponse()
+	LogDebug("ExtensionStore", "Building store response for %d registry extensions (%d installed)", len(registry.Extensions), len(installed))
 
+	result := make([]*StoreExtensionResponse, 0, len(registry.Extensions))
+	for i := range registry.Extensions {
+		ext := &registry.Extensions[i]
+		resp := ext.ToResponse()
 		if installedVersion, ok := installed[ext.ID]; ok {
 			resp.IsInstalled = true
 			resp.InstalledVersion = installedVersion
 			resp.HasUpdate = compareVersions(ext.Version, installedVersion) > 0
 		}
 
-		result[i] = resp
+		result = append(result, resp)
 	}
 
+	LogDebug("ExtensionStore", "Built store response payload for %d extensions", len(result))
 	return result, nil
+}
+
+func (s *ExtensionStore) GetExtensionsWithStatus() ([]*StoreExtensionResponse, error) {
+	return s.getExtensionsWithStatus(false)
 }
 
 func (s *ExtensionStore) DownloadExtension(extensionID string, destPath string) error {
@@ -470,7 +477,7 @@ func (s *ExtensionStore) GetCategories() []string {
 	}
 }
 
-func (s *ExtensionStore) SearchExtensions(query string, category string) ([]StoreExtensionResponse, error) {
+func (s *ExtensionStore) SearchExtensions(query string, category string) ([]*StoreExtensionResponse, error) {
 	extensions, err := s.GetExtensionsWithStatus()
 	if err != nil {
 		return nil, err
@@ -480,7 +487,7 @@ func (s *ExtensionStore) SearchExtensions(query string, category string) ([]Stor
 		return extensions, nil
 	}
 
-	var result []StoreExtensionResponse
+	result := make([]*StoreExtensionResponse, 0, len(extensions))
 	queryLower := toLower(query)
 
 	for _, ext := range extensions {

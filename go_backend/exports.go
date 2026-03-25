@@ -3214,11 +3214,7 @@ func GetStoreExtensionsJSON(forceRefresh bool) (string, error) {
 		return "", fmt.Errorf("extension store not initialized")
 	}
 
-	if forceRefresh {
-		store.FetchRegistry(true)
-	}
-
-	extensions, err := store.GetExtensionsWithStatus()
+	extensions, err := store.getExtensionsWithStatus(forceRefresh)
 	if err != nil {
 		return "", err
 	}
