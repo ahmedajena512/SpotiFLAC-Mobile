@@ -352,7 +352,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aboutAppDescription =>
-      'Tidal、Qobuz、Amazon Music から Spotify のトラックをロスレス品質でダウンロードします。';
+      'Download Spotify tracks in lossless quality from Tidal and Qobuz.';
 
   @override
   String get artistAlbums => 'アルバム';
@@ -761,7 +761,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get filenameFormat => 'ファイル名の形式';
 
   @override
-  String get filenameShowAdvancedTags => 'Show advanced tags';
+  String get filenameShowAdvancedTags => '高度なタグを表示';
 
   @override
   String get filenameShowAdvancedTagsDescription =>
@@ -1138,7 +1138,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackLyricsEmbedded => 'Lyrics embedded successfully';
 
   @override
-  String get trackInstrumental => 'Instrumental track';
+  String get trackInstrumental => 'インストゥルメンタルのトラック';
 
   @override
   String get trackCopiedToClipboard => 'クリップボードにコピーしました';
@@ -1909,7 +1909,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get tutorialWelcomeTip2 =>
-      'Get FLAC quality audio from Tidal, Qobuz, or Amazon Music';
+      'Get FLAC quality audio from Tidal, Qobuz, or Deezer';
 
   @override
   String get tutorialWelcomeTip3 =>
@@ -2261,7 +2261,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackConvertFailed => '変換に失敗しました';
 
   @override
-  String get cueSplitTitle => 'Split CUE Sheet';
+  String get cueSplitTitle => '分割 CUE シート';
 
   @override
   String get cueSplitSubtitle => 'Split CUE+FLAC into individual tracks';
@@ -2411,7 +2411,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionRemoveFromPlaylist => 'Remove from playlist';
 
   @override
-  String get collectionRemoveFromFolder => 'Remove from folder';
+  String get collectionRemoveFromFolder => 'フォルダから削除';
 
   @override
   String collectionRemoved(String trackName) {
@@ -2445,26 +2445,26 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackOptionRemoveFromLoved => 'Remove from Loved';
 
   @override
-  String get trackOptionAddToWishlist => 'Add to Wishlist';
+  String get trackOptionAddToWishlist => 'ウィッシュリストに追加';
 
   @override
-  String get trackOptionRemoveFromWishlist => 'Remove from Wishlist';
+  String get trackOptionRemoveFromWishlist => 'ウィッシュから削除';
 
   @override
-  String get collectionPlaylistChangeCover => 'Change cover image';
+  String get collectionPlaylistChangeCover => 'カバー画像を変更';
 
   @override
-  String get collectionPlaylistRemoveCover => 'Remove cover image';
+  String get collectionPlaylistRemoveCover => 'カバー画像を削除';
 
   @override
   String selectionShareCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'tracks',
-      one: 'track',
+      other: '個のトラック',
+      one: '個のトラック',
     );
-    return 'Share $count $_temp0';
+    return '$count $_temp0を共有';
   }
 
   @override
@@ -2485,7 +2485,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get selectionConvertNoConvertible => 'No convertible tracks selected';
 
   @override
-  String get selectionBatchConvertConfirmTitle => 'Batch Convert';
+  String get selectionBatchConvertConfirmTitle => '一括変換';
 
   @override
   String selectionBatchConvertConfirmMessage(

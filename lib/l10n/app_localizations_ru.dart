@@ -363,7 +363,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get aboutAppDescription =>
-      'Скачайте треки Spotify в Lossless качестве из Tidal, Qobuz и Amazon Music.';
+      'Скачивайте треки Spotify в lossless качестве с Tidal и Qobuz.';
 
   @override
   String get artistAlbums => 'Альбомы';
@@ -706,15 +706,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get errorNoTracksFound => 'Треки не найдены';
 
   @override
-  String get errorUrlNotRecognized => 'Link not recognized';
+  String get errorUrlNotRecognized => 'Ссылка не распознана';
 
   @override
   String get errorUrlNotRecognizedMessage =>
-      'This link is not supported. Make sure the URL is correct and a compatible extension is installed.';
+      'Эта ссылка не поддерживается. Убедитесь, что URL-адрес указан правильно и установлено совместимое расширение.';
 
   @override
   String get errorUrlFetchFailed =>
-      'Failed to load content from this link. Please try again.';
+      'Не удалось загрузить контент по этой ссылке. Пожалуйста, попробуйте еще раз.';
 
   @override
   String errorMissingExtensionSource(String item) {
@@ -790,11 +790,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get folderOrganizationNone => 'Без организации';
 
   @override
-  String get folderOrganizationByPlaylist => 'By Playlist';
+  String get folderOrganizationByPlaylist => 'По плейлисту';
 
   @override
   String get folderOrganizationByPlaylistSubtitle =>
-      'Separate folder for each playlist';
+      'Отдельная папка для каждого плейлиста';
 
   @override
   String get folderOrganizationByArtist => 'По исполнителю';
@@ -1482,7 +1482,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get downloadUsePrimaryArtistOnlyEnabled =>
-      'Featured artists removed from folder name (e.g. Justin Bieber, Quavo → Justin Bieber)';
+      'Список исполнителей, чьи работы были удалены из названия папки (например, Джастин Бибер, Quavo → Джастин Бибер)';
 
   @override
   String get downloadUsePrimaryArtistOnlyDisabled =>
@@ -1972,7 +1972,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get tutorialWelcomeTip2 =>
-      'Скачайте FLAC с Tidal, Qobuz или Amazon Music';
+      'Получите аудио в качестве FLAC от Tidal, Qobuz или Deezer';
 
   @override
   String get tutorialWelcomeTip3 =>
@@ -2068,7 +2068,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String cleanupOrphanedDownloadsResult(int count) {
-    return 'Removed $count orphaned entries from history';
+    return 'Удалено $count утерянных записей из истории';
   }
 
   @override
@@ -2093,7 +2093,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get cacheSectionStorage => 'Кэшированные данные';
 
   @override
-  String get cacheSectionMaintenance => 'Maintenance';
+  String get cacheSectionMaintenance => 'Обслуживание';
 
   @override
   String get cacheAppDirectory => 'Папка кэша приложения';
@@ -2139,7 +2139,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get cacheCleanupUnusedDesc =>
-      'Remove orphaned download history and library entries for missing files.';
+      'Удалить записи из истории загрузок и библиотеки, которые остались без файлов.';
 
   @override
   String get cacheNoData => 'Нет кэшированных данных';
@@ -2187,7 +2187,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get cacheCleanupUnusedSubtitle =>
-      'Remove orphaned download history and missing library entries';
+      'Удалить историю загрузок, оставшихся без просмотра, и отсутствующие записи в библиотеке';
 
   @override
   String cacheCleanupResult(int downloadCount, int libraryCount) {
@@ -2327,52 +2327,52 @@ class AppLocalizationsRu extends AppLocalizations {
   String get trackConvertFailed => 'Ошибка конвертации';
 
   @override
-  String get cueSplitTitle => 'Split CUE Sheet';
+  String get cueSplitTitle => 'Разделить CUE Sheet';
 
   @override
-  String get cueSplitSubtitle => 'Split CUE+FLAC into individual tracks';
+  String get cueSplitSubtitle => 'Разделить файл CUE+FLAC на отдельные треки';
 
   @override
   String cueSplitAlbum(String album) {
-    return 'Album: $album';
+    return 'Альбом: $album';
   }
 
   @override
   String cueSplitArtist(String artist) {
-    return 'Artist: $artist';
+    return 'Артист: $artist';
   }
 
   @override
   String cueSplitTrackCount(int count) {
-    return '$count tracks';
+    return '$count треков';
   }
 
   @override
-  String get cueSplitConfirmTitle => 'Split CUE Album';
+  String get cueSplitConfirmTitle => 'Разделенный CUE-альбом';
 
   @override
   String cueSplitConfirmMessage(String album, int count) {
-    return 'Split \"$album\" into $count individual FLAC files?\n\nFiles will be saved to the same directory.';
+    return 'Разбить \"$album\" на $count отдельных FLAC-файлов?';
   }
 
   @override
   String cueSplitSplitting(int current, int total) {
-    return 'Splitting CUE sheet... ($current/$total)';
+    return 'Разделение CUE sheet... ($current/$total)';
   }
 
   @override
   String cueSplitSuccess(int count) {
-    return 'Split into $count tracks successfully';
+    return 'Успешно разделено на $count треков';
   }
 
   @override
-  String get cueSplitFailed => 'CUE split failed';
+  String get cueSplitFailed => 'Разделение CUE не удалось';
 
   @override
-  String get cueSplitNoAudioFile => 'Audio file not found for this CUE sheet';
+  String get cueSplitNoAudioFile => 'Аудиофайл для этого CUE sheet не найден';
 
   @override
-  String get cueSplitButton => 'Split into Tracks';
+  String get cueSplitButton => 'Разделить на Треки';
 
   @override
   String get actionCreate => 'Создать';
@@ -2538,7 +2538,8 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get selectionShareNoFiles => 'No shareable files found';
+  String get selectionShareNoFiles =>
+      'Файлы, доступные для совместного доступа, не найдены';
 
   @override
   String selectionConvertCount(int count) {
@@ -2571,7 +2572,7 @@ class AppLocalizationsRu extends AppLocalizations {
       other: 'tracks',
       one: 'track',
     );
-    return 'Convert $count $_temp0 to $format at $bitrate?\n\nOriginal files will be deleted after conversion.';
+    return 'Преобразовать $count $_temp0 в $format с $bitrate?';
   }
 
   @override

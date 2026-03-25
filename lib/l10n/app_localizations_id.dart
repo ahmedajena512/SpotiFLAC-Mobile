@@ -359,7 +359,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get aboutAppDescription =>
-      'Unduh lagu Spotify dalam kualitas lossless dari Tidal, Qobuz, dan Amazon Music.';
+      'Unduh lagu-lagu Spotify dalam kualitas lossless dari Tidal dan Qobuz.';
 
   @override
   String get artistAlbums => 'Album';
@@ -769,21 +769,21 @@ class AppLocalizationsId extends AppLocalizations {
   String get filenameFormat => 'Format Nama File';
 
   @override
-  String get filenameShowAdvancedTags => 'Show advanced tags';
+  String get filenameShowAdvancedTags => 'Tampilkan tag lanjutan';
 
   @override
   String get filenameShowAdvancedTagsDescription =>
-      'Enable formatted tags for track padding and date patterns';
+      'Aktifkan tag yang diformat untuk padding trek dan pola tanggal';
 
   @override
   String get folderOrganizationNone => 'Tidak ada';
 
   @override
-  String get folderOrganizationByPlaylist => 'By Playlist';
+  String get folderOrganizationByPlaylist => 'Berdasarkan Daftar Putar';
 
   @override
   String get folderOrganizationByPlaylistSubtitle =>
-      'Separate folder for each playlist';
+      'Setiap daftar putar memerlukan folder terpisah';
 
   @override
   String get folderOrganizationByArtist => 'Berdasarkan Artis';
@@ -939,13 +939,13 @@ class AppLocalizationsId extends AppLocalizations {
       'Masukkan Client ID dan Secret Anda untuk menggunakan kuota aplikasi Spotify Anda sendiri.';
 
   @override
-  String get credentialsClientId => 'Client ID';
+  String get credentialsClientId => 'ID Klien';
 
   @override
   String get credentialsClientIdHint => 'Tempel Client ID';
 
   @override
-  String get credentialsClientSecret => 'Client Secret';
+  String get credentialsClientSecret => 'Rahasia Klien';
 
   @override
   String get credentialsClientSecretHint => 'Tempel Client Secret';
@@ -954,7 +954,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get channelStable => 'Stabil';
 
   @override
-  String get channelPreview => 'Preview';
+  String get channelPreview => 'Pratinjau';
 
   @override
   String get sectionSearchSource => 'Sumber Pencarian';
@@ -984,33 +984,34 @@ class AppLocalizationsId extends AppLocalizations {
   String get sectionFileSettings => 'Pengaturan File';
 
   @override
-  String get sectionLyrics => 'Lyrics';
+  String get sectionLyrics => 'Lirik';
 
   @override
-  String get lyricsMode => 'Lyrics Mode';
+  String get lyricsMode => 'Mode Lirik';
 
   @override
   String get lyricsModeDescription =>
-      'Choose how lyrics are saved with your downloads';
+      'Pilih cara lirik disimpan bersama unduhan Anda';
 
   @override
-  String get lyricsModeEmbed => 'Embed in file';
+  String get lyricsModeEmbed => 'Sematkan dalam file';
 
   @override
-  String get lyricsModeEmbedSubtitle => 'Lyrics stored inside FLAC metadata';
+  String get lyricsModeEmbedSubtitle =>
+      'Lirik tersimpan di dalam metadata FLAC';
 
   @override
-  String get lyricsModeExternal => 'External .lrc file';
+  String get lyricsModeExternal => 'File .lrc eksternal';
 
   @override
   String get lyricsModeExternalSubtitle =>
-      'Separate .lrc file for players like Samsung Music';
+      'File .lrc terpisah untuk pemutar musik seperti Samsung Music';
 
   @override
-  String get lyricsModeBoth => 'Both';
+  String get lyricsModeBoth => 'Keduanya';
 
   @override
-  String get lyricsModeBothSubtitle => 'Embed and save .lrc file';
+  String get lyricsModeBothSubtitle => 'Sematkan dan simpan file .lrc';
 
   @override
   String get sectionColor => 'Warna';
@@ -1122,10 +1123,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get trackGenre => 'Genre';
 
   @override
-  String get trackLabel => 'Label';
+  String get trackLabel => 'Lebel';
 
   @override
-  String get trackCopyright => 'Copyright';
+  String get trackCopyright => 'Hak cipta';
 
   @override
   String get trackDownloaded => 'Diunduh';
@@ -1143,13 +1144,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get trackLyricsLoadFailed => 'Gagal memuat lirik';
 
   @override
-  String get trackEmbedLyrics => 'Embed Lyrics';
+  String get trackEmbedLyrics => 'Sematkan Lirik';
 
   @override
-  String get trackLyricsEmbedded => 'Lyrics embedded successfully';
+  String get trackLyricsEmbedded => 'Lirik berhasil disematkan';
 
   @override
-  String get trackInstrumental => 'Instrumental track';
+  String get trackInstrumental => 'Lagu instrumental';
 
   @override
   String get trackCopiedToClipboard => 'Disalin ke clipboard';
@@ -1245,7 +1246,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get storeEmptyNoResults => 'No extensions found';
 
   @override
-  String get extensionDefaultProvider => 'Default (Deezer/Spotify)';
+  String get extensionDefaultProvider => 'Bawaan (Deezer/Spotify)';
 
   @override
   String get extensionDefaultProviderSubtitle => 'Gunakan pencarian bawaan';
@@ -1257,7 +1258,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get extensionId => 'ID';
 
   @override
-  String get extensionError => 'Error';
+  String get extensionError => 'Terjadi kesalahan';
 
   @override
   String get extensionCapabilities => 'Kemampuan';
@@ -1434,13 +1435,13 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get youtubeQualityNote =>
-      'YouTube provides lossy audio only. Not part of lossless fallback.';
+      'YouTube hanya menyediakan audio terkompresi (lossy). Bukan bagian dari fallback lossless.';
 
   @override
-  String get youtubeOpusBitrateTitle => 'YouTube Opus Bitrate';
+  String get youtubeOpusBitrateTitle => 'Bitrate YouTube Opus';
 
   @override
-  String get youtubeMp3BitrateTitle => 'YouTube MP3 Bitrate';
+  String get youtubeMp3BitrateTitle => 'Kecepatan Bit MP3 YouTube';
 
   @override
   String get downloadAskBeforeDownload => 'Tanya Sebelum Unduh';
@@ -1455,18 +1456,19 @@ class AppLocalizationsId extends AppLocalizations {
   String get downloadAlbumFolderStructure => 'Struktur Folder Album';
 
   @override
-  String get downloadUseAlbumArtistForFolders => 'Use Album Artist for folders';
+  String get downloadUseAlbumArtistForFolders =>
+      'Gunakan Artis Album untuk folder';
 
   @override
-  String get downloadUsePrimaryArtistOnly => 'Primary artist only for folders';
+  String get downloadUsePrimaryArtistOnly => 'Hanya artis utama untuk folder';
 
   @override
   String get downloadUsePrimaryArtistOnlyEnabled =>
-      'Featured artists removed from folder name (e.g. Justin Bieber, Quavo → Justin Bieber)';
+      'Artis unggulan dihapus dari nama folder (misalnya Justin Bieber, Quavo → Justin Bieber)';
 
   @override
   String get downloadUsePrimaryArtistOnlyDisabled =>
-      'Full artist string used for folder name';
+      'Nama lengkap artis digunakan untuk nama folder';
 
   @override
   String get downloadSelectQuality => 'Pilih Kualitas';
@@ -1488,24 +1490,24 @@ class AppLocalizationsId extends AppLocalizations {
       'Apakah Anda yakin ingin menghapus semua unduhan?';
 
   @override
-  String get settingsAutoExportFailed => 'Auto-export failed downloads';
+  String get settingsAutoExportFailed => 'Unduhan yang gagal diekspor otomatis';
 
   @override
   String get settingsAutoExportFailedSubtitle =>
-      'Save failed downloads to TXT file automatically';
+      'Simpan unduhan yang gagal ke file TXT secara otomatis';
 
   @override
-  String get settingsDownloadNetwork => 'Download Network';
+  String get settingsDownloadNetwork => 'Jaringan Unduhan';
 
   @override
-  String get settingsDownloadNetworkAny => 'WiFi + Mobile Data';
+  String get settingsDownloadNetworkAny => 'WiFi + Data Seluler';
 
   @override
-  String get settingsDownloadNetworkWifiOnly => 'WiFi Only';
+  String get settingsDownloadNetworkWifiOnly => 'Hanya WiFi';
 
   @override
   String get settingsDownloadNetworkSubtitle =>
-      'Choose which network to use for downloads. When set to WiFi Only, downloads will pause on mobile data.';
+      'Pilih jaringan mana yang akan digunakan untuk mengunduh. Jika diatur ke Hanya WiFi, unduhan akan berhenti sementara dan menggunakan data seluler.';
 
   @override
   String get albumFolderArtistAlbum => 'Artis / Album';
@@ -1533,11 +1535,11 @@ class AppLocalizationsId extends AppLocalizations {
   String get albumFolderYearAlbumSubtitle => 'Albums/[2005] Nama Album/';
 
   @override
-  String get albumFolderArtistAlbumSingles => 'Artist / Album + Singles';
+  String get albumFolderArtistAlbumSingles => 'Artis / Album + Singel';
 
   @override
   String get albumFolderArtistAlbumSinglesSubtitle =>
-      'Artist/Album/ and Artist/Singles/';
+      'Artis/Album/ dan Artis/Single/';
 
   @override
   String get downloadedAlbumDeleteSelected => 'Hapus yang Dipilih';
@@ -1593,21 +1595,21 @@ class AppLocalizationsId extends AppLocalizations {
   String get recentTypeSong => 'Lagu';
 
   @override
-  String get recentTypePlaylist => 'Playlist';
+  String get recentTypePlaylist => 'Daftar putar';
 
   @override
-  String get recentEmpty => 'No recent items yet';
+  String get recentEmpty => 'Belum ada item terbaru';
 
   @override
-  String get recentShowAllDownloads => 'Show All Downloads';
+  String get recentShowAllDownloads => 'Tampilkan Semua Unduhan';
 
   @override
   String recentPlaylistInfo(String name) {
-    return 'Playlist: $name';
+    return 'Daftar Putar: $name';
   }
 
   @override
-  String get discographyDownload => 'Download Discography';
+  String get discographyDownload => 'Unduh Diskografi';
 
   @override
   String get discographyDownloadAll => 'Unduh Semua';
@@ -1917,44 +1919,44 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get tutorialWelcomeTitle => 'Welcome to SpotiFLAC!';
+  String get tutorialWelcomeTitle => 'Selamat Datang di SpotiFLAC!';
 
   @override
   String get tutorialWelcomeDesc =>
-      'Let\'s learn how to download your favorite music in lossless quality. This quick tutorial will show you the basics.';
+      'Mari kita pelajari cara mengunduh musik favorit Anda dalam kualitas lossless. Tutorial singkat ini akan menunjukkan dasar-dasarnya.';
 
   @override
   String get tutorialWelcomeTip1 =>
-      'Download music from Spotify, Deezer, or paste any supported URL';
+      'Unduh musik dari Spotify, Deezer, atau tempel URL yang didukung';
 
   @override
   String get tutorialWelcomeTip2 =>
-      'Get FLAC quality audio from Tidal, Qobuz, or Amazon Music';
+      'Dapatkan audio berkualitas FLAC dari Tidal, Qobuz, atau Deezer';
 
   @override
   String get tutorialWelcomeTip3 =>
-      'Automatic metadata, cover art, and lyrics embedding';
+      'Penyematan metadata, sampul album, dan lirik secara otomatis';
 
   @override
-  String get tutorialSearchTitle => 'Finding Music';
+  String get tutorialSearchTitle => 'Menemukan Musik';
 
   @override
   String get tutorialSearchDesc =>
-      'There are two easy ways to find music you want to download.';
+      'Ada dua cara mudah untuk menemukan musik yang ingin Anda unduh.';
 
   @override
-  String get tutorialDownloadTitle => 'Downloading Music';
+  String get tutorialDownloadTitle => 'Mengunduh Musik';
 
   @override
   String get tutorialDownloadDesc =>
-      'Downloading music is simple and fast. Here\'s how it works.';
+      'Mengunduh musik itu mudah dan cepat. Begini cara kerjanya.';
 
   @override
-  String get tutorialLibraryTitle => 'Your Library';
+  String get tutorialLibraryTitle => 'Perpustakaan Anda';
 
   @override
   String get tutorialLibraryDesc =>
-      'All your downloaded music is organized in the Library tab.';
+      'Semua musik yang Anda unduh tersusun rapi di tab Perpustakaan.';
 
   @override
   String get tutorialLibraryTip1 =>

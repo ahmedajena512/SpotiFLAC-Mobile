@@ -158,16 +158,16 @@ class AppLocalizationsNl extends AppLocalizations {
   String get optionsConcurrentDownloads => 'Concurrent Downloads';
 
   @override
-  String get optionsConcurrentSequential => 'Sequential (1 at a time)';
+  String get optionsConcurrentSequential => 'Sequentiële (1 per keer)';
 
   @override
   String optionsConcurrentParallel(int count) {
-    return '$count parallel downloads';
+    return '';
   }
 
   @override
   String get optionsConcurrentWarning =>
-      'Parallel downloads may trigger rate limiting';
+      'Parallel downloaden kan leiden tot rate-limiting';
 
   @override
   String get optionsExtensionStore => 'Extension Store';
@@ -271,7 +271,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get aboutContributors => 'Contributors';
 
   @override
-  String get aboutMobileDeveloper => 'Mobile version developer';
+  String get aboutMobileDeveloper => '';
 
   @override
   String get aboutOriginalCreator => 'Creator of the original SpotiFLAC';
@@ -356,7 +356,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get aboutAppDescription =>
-      'Download Spotify tracks in lossless quality from Tidal, Qobuz, and Amazon Music.';
+      'Download Spotify tracks in lossless quality from Tidal and Qobuz.';
 
   @override
   String get artistAlbums => 'Albums';
@@ -1922,7 +1922,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get tutorialWelcomeTip2 =>
-      'Get FLAC quality audio from Tidal, Qobuz, or Amazon Music';
+      'Get FLAC quality audio from Tidal, Qobuz, or Deezer';
 
   @override
   String get tutorialWelcomeTip3 =>
