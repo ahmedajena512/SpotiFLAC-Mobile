@@ -225,11 +225,19 @@ void _pushAlbumScreen(
   String? coverUrl,
   String? extensionId,
 }) {
+  // Built-in providers (tidal, qobuz, deezer) use AlbumScreen which
+  // detects the provider from the album ID prefix. Only true JS extensions
+  // should use ExtensionAlbumScreen.
+  const builtInProviders = {'tidal', 'qobuz', 'deezer'};
+  final isExtension =
+      extensionId != null && !builtInProviders.contains(extensionId);
+  final resolvedExtensionId = extensionId;
+
   _pushViaPreferredNavigator(
     context,
-    (context) => extensionId != null
+    (context) => isExtension && resolvedExtensionId != null
         ? ExtensionAlbumScreen(
-            extensionId: extensionId,
+            extensionId: resolvedExtensionId,
             albumId: albumId,
             albumName: albumName,
             coverUrl: coverUrl,

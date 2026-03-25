@@ -2122,7 +2122,9 @@ class _HomeTabState extends ConsumerState<HomeTab>
         if (item.providerId != null &&
             item.providerId!.isNotEmpty &&
             item.providerId != 'deezer' &&
-            item.providerId != 'spotify') {
+            item.providerId != 'spotify' &&
+            item.providerId != 'tidal' &&
+            item.providerId != 'qobuz') {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -2162,7 +2164,9 @@ class _HomeTabState extends ConsumerState<HomeTab>
         } else if (item.providerId != null &&
             item.providerId!.isNotEmpty &&
             item.providerId != 'deezer' &&
-            item.providerId != 'spotify') {
+            item.providerId != 'spotify' &&
+            item.providerId != 'tidal' &&
+            item.providerId != 'qobuz') {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -2210,7 +2214,9 @@ class _HomeTabState extends ConsumerState<HomeTab>
         if (item.providerId != null &&
             item.providerId!.isNotEmpty &&
             item.providerId != 'deezer' &&
-            item.providerId != 'spotify') {
+            item.providerId != 'spotify' &&
+            item.providerId != 'tidal' &&
+            item.providerId != 'qobuz') {
           Navigator.push(
             context,
             MaterialPageRoute(
