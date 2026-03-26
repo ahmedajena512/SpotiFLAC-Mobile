@@ -405,16 +405,19 @@ class GridSkeleton extends StatelessWidget {
             crossAxisCount: crossAxisCount,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 0.78,
+            childAspectRatio: 0.75,
           ),
           itemCount: itemCount,
           itemBuilder: (context, index) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const AspectRatio(
-                  aspectRatio: 1,
-                  child: SkeletonBox(width: double.infinity, height: 0),
+                const Expanded(
+                  child: SkeletonBox(
+                    width: double.infinity,
+                    height: double.infinity,
+                    borderRadius: 12,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 SkeletonBox(
