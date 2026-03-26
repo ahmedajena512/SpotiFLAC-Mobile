@@ -28,6 +28,7 @@ import 'package:spotiflac_android/screens/playlist_screen.dart';
 import 'package:spotiflac_android/screens/downloaded_album_screen.dart';
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
+import 'package:spotiflac_android/widgets/animation_utils.dart';
 import 'package:spotiflac_android/utils/clickable_metadata.dart';
 
 class HomeTab extends ConsumerStatefulWidget {
@@ -1297,8 +1298,8 @@ class _HomeTabState extends ConsumerState<HomeTab>
                   exploreLoading)
                 const SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(child: CircularProgressIndicator()),
+                    padding: EdgeInsets.all(16),
+                    child: TrackListSkeleton(itemCount: 5),
                   ),
                 ),
 
@@ -1548,7 +1549,11 @@ class _HomeTabState extends ConsumerState<HomeTab>
             itemCount: section.items.length,
             itemBuilder: (context, index) {
               final item = section.items[index];
-              return _buildExploreItem(item, colorScheme);
+              return StaggeredListItem(
+                index: index,
+                staggerDelay: const Duration(milliseconds: 50),
+                child: _buildExploreItem(item, colorScheme),
+              );
             },
           ),
         ),
@@ -2270,14 +2275,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         );
     if (!mounted) return;
     final result = await navigator.push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 250),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            TrackMetadataScreen(item: item),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-            FadeTransition(opacity: animation, child: child),
-      ),
+      slidePageRoute(page: TrackMetadataScreen(item: item)),
     );
     await DownloadedEmbeddedCoverResolver.scheduleRefreshForPath(
       item.filePath,
@@ -2590,6 +2588,15 @@ class _HomeTabState extends ConsumerState<HomeTab>
     required bool showLocalLibraryIndicator,
     required Map<String, (double, double)> thumbnailSizesByExtensionId,
   }) {
+    final hasActualData =
+        tracks.isNotEmpty ||
+        (searchArtists != null && searchArtists.isNotEmpty) ||
+        (searchAlbums != null && searchAlbums.isNotEmpty) ||
+        (searchPlaylists != null && searchPlaylists.isNotEmpty);
+
+    if (!hasActualData && isLoading) {
+      return [const SliverToBoxAdapter(child: HomeSearchSkeleton())];
+    }
     if (!hasResults) {
       return [const SliverToBoxAdapter(child: SizedBox.shrink())];
     }
@@ -2601,7 +2608,6 @@ class _HomeTabState extends ConsumerState<HomeTab>
     final playlistItems = buckets.playlistItems;
     final artistItems = buckets.artistItems;
 
-    // Apply sorting to each list.
     final sortedArtists = searchArtists != null && searchArtists.isNotEmpty
         ? _applySortToList<SearchArtist>(
             searchArtists,
@@ -2633,7 +2639,6 @@ class _HomeTabState extends ConsumerState<HomeTab>
           )
         : searchPlaylists;
 
-    // For tracks we need paired sorting (track + original index).
     List<Track> sortedTracks;
     List<int> sortedTrackIndexes;
     if (realTracks.isNotEmpty &&
@@ -2673,7 +2678,6 @@ class _HomeTabState extends ConsumerState<HomeTab>
         ),
     ];
 
-    // Track whether the sort button has been shown yet (show on first section).
     bool sortButtonShown = false;
 
     if (sortedArtists != null && sortedArtists.isNotEmpty) {
@@ -2878,19 +2882,22 @@ class _HomeTabState extends ConsumerState<HomeTab>
         delegate: SliverChildBuilderDelegate((context, index) {
           final isFirst = index == 0;
           final isLast = index == itemCount - 1;
-          return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: sectionColor,
-              borderRadius: BorderRadius.vertical(
-                top: isFirst ? const Radius.circular(20) : Radius.zero,
-                bottom: isLast ? const Radius.circular(20) : Radius.zero,
+          return StaggeredListItem(
+            index: index,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: sectionColor,
+                borderRadius: BorderRadius.vertical(
+                  top: isFirst ? const Radius.circular(20) : Radius.zero,
+                  bottom: isLast ? const Radius.circular(20) : Radius.zero,
+                ),
               ),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Material(
-              color: Colors.transparent,
-              child: itemBuilder(index, !isLast),
+              clipBehavior: Clip.antiAlias,
+              child: Material(
+                color: Colors.transparent,
+                child: itemBuilder(index, !isLast),
+              ),
             ),
           );
         }, childCount: itemCount),
@@ -3084,7 +3091,6 @@ class _HomeTabState extends ConsumerState<HomeTab>
     }
 
     if (searchProvider != null && searchProvider.isNotEmpty) {
-      // Check built-in providers first
       if (searchProvider == 'tidal') {
         return 'Search with Tidal...';
       }
@@ -3178,7 +3184,6 @@ class _HomeTabState extends ConsumerState<HomeTab>
     if (text.isEmpty || text.length < _minLiveSearchChars) return;
     if (text.startsWith('http') || text.startsWith('spotify:')) return;
 
-    // Reset last search query to force new search
     _lastSearchQuery = null;
     _performSearch(text, filterOverride: filter);
   }
@@ -3299,7 +3304,6 @@ class _SearchProviderDropdown extends ConsumerWidget {
           .firstOrNull;
     }
 
-    // Check if current provider is a built-in provider (tidal/qobuz)
     const builtInProviders = {'tidal', 'qobuz'};
     final isBuiltInProvider =
         currentProvider != null && builtInProviders.contains(currentProvider);
@@ -3379,7 +3383,6 @@ class _SearchProviderDropdown extends ConsumerWidget {
               ],
             ),
           ),
-          // Built-in Tidal search option
           PopupMenuItem<String>(
             value: 'tidal',
             child: Row(
@@ -3407,7 +3410,6 @@ class _SearchProviderDropdown extends ConsumerWidget {
               ],
             ),
           ),
-          // Built-in Qobuz search option
           PopupMenuItem<String>(
             value: 'qobuz',
             child: Row(
@@ -4230,7 +4232,6 @@ class _ExtensionAlbumScreenState extends ConsumerState<ExtensionAlbumScreen> {
           .map((t) => _parseTrack(t as Map<String, dynamic>))
           .toList();
 
-      // Extract artist info from album response
       final artistId = (result['artist_id'] ?? result['artistId'])?.toString();
       final artistName = result['artists'] as String?;
 
@@ -4288,7 +4289,10 @@ class _ExtensionAlbumScreenState extends ConsumerState<ExtensionAlbumScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.albumName)),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const AlbumTrackListSkeleton(
+          itemCount: 10,
+          showCoverHeader: true,
+        ),
       );
     }
 
@@ -4442,7 +4446,7 @@ class _ExtensionPlaylistScreenState
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.playlistName)),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const TrackListSkeleton(itemCount: 8, showCoverHeader: true),
       );
     }
 
@@ -4614,7 +4618,7 @@ class _ExtensionArtistScreenState extends ConsumerState<ExtensionArtistScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.artistName)),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const ArtistScreenSkeleton(),
       );
     }
 

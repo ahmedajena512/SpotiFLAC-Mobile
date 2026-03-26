@@ -34,6 +34,7 @@ import 'package:spotiflac_android/utils/clickable_metadata.dart';
 import 'package:spotiflac_android/utils/path_match_keys.dart';
 import 'package:spotiflac_android/utils/string_utils.dart';
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
+import 'package:spotiflac_android/widgets/animation_utils.dart';
 
 enum LibraryItemSource { downloaded, local }
 
@@ -785,7 +786,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
   String? _filterCacheQuality;
   String? _filterCacheFormat;
   String _filterCacheSortMode = 'latest';
-  // Advanced filters
   String? _filterSource; // null = all, 'downloaded', 'local'
   String? _filterQuality; // null = all, 'hires', 'cd', 'lossy'
   String? _filterFormat; // null = all, 'flac', 'mp3', 'm4a', 'opus', 'ogg'
@@ -1925,7 +1925,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
           .toList(growable: false);
     }
 
-    // Apply sorting
     return _applySorting(filtered);
   }
 
@@ -2286,14 +2285,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     final beforeModTime = await _readFileModTimeMillis(historyItem.filePath);
     if (!mounted) return;
     final result = await navigator.push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 250),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            TrackMetadataScreen(item: historyItem),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-            FadeTransition(opacity: animation, child: child),
-      ),
+      slidePageRoute(page: TrackMetadataScreen(item: historyItem)),
     );
     _searchFocusNode.unfocus();
     if (result == true) {
@@ -2319,14 +2311,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     final beforeModTime = await _readFileModTimeMillis(item.filePath);
     if (!mounted) return;
     final result = await navigator.push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 250),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            TrackMetadataScreen(item: item),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-            FadeTransition(opacity: animation, child: child),
-      ),
+      slidePageRoute(page: TrackMetadataScreen(item: item)),
     );
     _searchFocusNode.unfocus();
     if (result == true) {
@@ -2347,14 +2332,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     _searchFocusNode.unfocus();
     Navigator.push(
       context,
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 250),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            TrackMetadataScreen(localItem: item),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-            FadeTransition(opacity: animation, child: child),
-      ),
+      slidePageRoute(page: TrackMetadataScreen(localItem: item)),
     ).then((_) => _searchFocusNode.unfocus());
   }
 
@@ -2401,35 +2379,25 @@ class _QueueTabState extends ConsumerState<QueueTab> {
 
   void _navigateToDownloadedAlbum(_GroupedAlbum album) {
     _navigateWithUnfocus(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 250),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            DownloadedAlbumScreen(
-              albumName: album.albumName,
-              artistName: album.artistName,
-              coverUrl: album.coverUrl,
-            ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-            FadeTransition(opacity: animation, child: child),
+      slidePageRoute(
+        page: DownloadedAlbumScreen(
+          albumName: album.albumName,
+          artistName: album.artistName,
+          coverUrl: album.coverUrl,
+        ),
       ),
     );
   }
 
   void _navigateToLocalAlbum(_GroupedLocalAlbum album) {
     _navigateWithUnfocus(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 250),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            LocalAlbumScreen(
-              albumName: album.albumName,
-              artistName: album.artistName,
-              coverPath: album.coverPath,
-              tracks: album.tracks,
-            ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-            FadeTransition(opacity: animation, child: child),
+      slidePageRoute(
+        page: LocalAlbumScreen(
+          albumName: album.albumName,
+          artistName: album.artistName,
+          coverPath: album.coverPath,
+          tracks: album.tracks,
+        ),
       ),
     );
   }
@@ -2664,7 +2632,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
       return;
     }
 
-    // Single track drop
     final track = item.toTrack();
     final added = await notifier.addTrackToPlaylist(playlistId, track);
 
@@ -2731,7 +2698,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     final allHistoryItems = ref.watch(
       downloadHistoryProvider.select((s) => s.items),
     );
-    // Watch local library items
     final localLibraryEnabled = ref.watch(
       settingsProvider.select((s) => s.localLibraryEnabled),
     );
@@ -2953,7 +2919,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                       child: Builder(
                         builder: (context) {
-                          // Compute filtered counts for tab chips
                           int filteredAllCount;
                           int filteredAlbumCount;
                           int filteredSingleCount;
@@ -3470,26 +3435,14 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                       top: 4,
                       right: 4,
                       child: IgnorePointer(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? colorScheme.primary
-                                : colorScheme.surface.withValues(alpha: 0.85),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? colorScheme.primary
-                                  : colorScheme.outline,
-                              width: 2,
-                            ),
+                        child: AnimatedSelectionCheckbox(
+                          visible: true,
+                          selected: isSelected,
+                          colorScheme: colorScheme,
+                          size: 20,
+                          unselectedColor: colorScheme.surface.withValues(
+                            alpha: 0.85,
                           ),
-                          child: isSelected
-                              ? Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: colorScheme.onPrimary,
-                                )
-                              : const SizedBox(width: 16, height: 16),
                         ),
                       ),
                     ),
@@ -3567,26 +3520,11 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                       behavior: HitTestBehavior.opaque,
                       child: Padding(
                         padding: const EdgeInsets.only(left: 8),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? colorScheme.primary
-                                : Colors.transparent,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? colorScheme.primary
-                                  : colorScheme.outline,
-                              width: 2,
-                            ),
-                          ),
-                          child: isSelected
-                              ? Icon(
-                                  Icons.check,
-                                  size: 18,
-                                  color: colorScheme.onPrimary,
-                                )
-                              : const SizedBox(width: 18, height: 18),
+                        child: AnimatedSelectionCheckbox(
+                          visible: true,
+                          selected: isSelected,
+                          colorScheme: colorScheme,
+                          size: 24,
                         ),
                       ),
                     ),
@@ -3653,7 +3591,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                     ),
                   ),
                   const Spacer(),
-                  // Filter button with long-press to reset
                   if (!_isSelectionMode)
                     _buildFilterButton(context, unifiedItems),
                   if (!_isSelectionMode && filteredUnifiedItems.isNotEmpty)
@@ -3693,7 +3630,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
             ),
           ),
 
-        // Albums empty state with filter button
         if (filteredGroupedAlbums.isEmpty &&
             filteredGroupedLocalAlbums.isEmpty &&
             filterMode == 'albums' &&
@@ -3749,7 +3685,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
             ),
           ),
 
-        // Combined albums grid (downloaded + local in single grid)
         if (filterMode == 'albums' &&
             (filteredGroupedAlbums.isNotEmpty ||
                 filteredGroupedLocalAlbums.isNotEmpty))
@@ -3764,7 +3699,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  // First render downloaded albums, then local albums
                   if (index < filteredGroupedAlbums.length) {
                     final album = filteredGroupedAlbums[index];
                     return KeyedSubtree(
@@ -3791,7 +3725,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
             ),
           ),
 
-        // Unified list/grid for 'all' filter: collection items + tracks combined
         if (filterMode == 'all') ...[
           if (historyViewMode == 'grid')
             SliverPadding(
@@ -3908,7 +3841,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
             ),
         ],
 
-        // Singles filter - show unified items (downloaded + local singles)
         if (filterMode == 'singles')
           SliverToBoxAdapter(
             child: Padding(
@@ -4996,7 +4928,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
       return;
     }
 
-    // Confirm
     final isLossless = targetFormat == 'ALAC' || targetFormat == 'FLAC';
     final confirmed = await showDialog<bool>(
       context: context,
@@ -5437,7 +5368,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
 
               const SizedBox(height: 12),
 
-              // Action buttons row: Share/Re-enrich, Convert, Delete
               Row(
                 children: [
                   if (localOnlySelection && flacEligibleCount > 0) ...[
@@ -5524,101 +5454,148 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     ColorScheme colorScheme,
   ) {
     final isCompleted = item.status == DownloadStatus.completed;
+    final isActive =
+        item.status == DownloadStatus.queued ||
+        item.status == DownloadStatus.downloading ||
+        item.status == DownloadStatus.finalizing;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: InkWell(
-        onTap: isCompleted ? () => _navigateToMetadataScreen(item) : null,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              isCompleted
-                  ? Hero(
-                      tag: 'cover_${item.id}',
-                      child: _buildCoverArt(item, colorScheme),
-                    )
-                  : _buildCoverArt(item, colorScheme),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.track.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+    return Dismissible(
+      key: ValueKey('dismiss_${item.id}'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: isActive
+          ? (_) async {
+              return await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Cancel download?'),
+                      content: Text(
+                        'This will cancel the active download for "${item.track.name}".',
                       ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: const Text('Keep'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: const Text('Cancel'),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    ClickableArtistName(
-                      artistName: item.track.artistName,
-                      artistId: item.track.artistId,
-                      coverUrl: item.track.coverUrl,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    if (item.status == DownloadStatus.downloading) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                value: item.progress > 0 ? item.progress : null,
-                                backgroundColor:
-                                    colorScheme.surfaceContainerHighest,
-                                color: colorScheme.primary,
-                                minHeight: 6,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            // When progress is 0 (unknown size, e.g. YouTube tunnel mode),
-                            // show bytes downloaded instead of percentage
-                            item.progress > 0
-                                ? (item.speedMBps > 0
-                                      ? '${(item.progress * 100).toStringAsFixed(0)}% • ${item.speedMBps.toStringAsFixed(1)} MB/s'
-                                      : '${(item.progress * 100).toStringAsFixed(0)}%')
-                                : (item.bytesReceived > 0
-                                      ? '${(item.bytesReceived / (1024 * 1024)).toStringAsFixed(1)} MB • ${item.speedMBps.toStringAsFixed(1)} MB/s'
-                                      : (item.speedMBps > 0
-                                            ? 'Downloading • ${item.speedMBps.toStringAsFixed(1)} MB/s'
-                                            : 'Starting...')),
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
+                  ) ??
+                  false;
+            }
+          : null,
+      onDismissed: (_) {
+        ref.read(downloadQueueProvider.notifier).dismissItem(item.id);
+      },
+      background: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          color: colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: Icon(Icons.delete_outline, color: colorScheme.onErrorContainer),
+      ),
+      child: DownloadSuccessOverlay(
+        showSuccess: isCompleted,
+        child: Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: InkWell(
+            onTap: isCompleted ? () => _navigateToMetadataScreen(item) : null,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  isCompleted
+                      ? Hero(
+                          tag: 'cover_${item.id}',
+                          child: _buildCoverArt(item, colorScheme),
+                        )
+                      : _buildCoverArt(item, colorScheme),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.track.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 2),
+                        ClickableArtistName(
+                          artistName: item.track.artistName,
+                          artistId: item.track.artistId,
+                          coverUrl: item.track.coverUrl,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
+                        if (item.status == DownloadStatus.downloading) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: LinearProgressIndicator(
+                                    value: item.progress > 0
+                                        ? item.progress
+                                        : null,
+                                    backgroundColor:
+                                        colorScheme.surfaceContainerHighest,
+                                    color: colorScheme.primary,
+                                    minHeight: 6,
+                                  ),
                                 ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                // When progress is 0 (unknown size, e.g. YouTube tunnel mode),
+                                // show bytes downloaded instead of percentage
+                                item.progress > 0
+                                    ? (item.speedMBps > 0
+                                          ? '${(item.progress * 100).toStringAsFixed(0)}% • ${item.speedMBps.toStringAsFixed(1)} MB/s'
+                                          : '${(item.progress * 100).toStringAsFixed(0)}%')
+                                    : (item.bytesReceived > 0
+                                          ? '${(item.bytesReceived / (1024 * 1024)).toStringAsFixed(1)} MB • ${item.speedMBps.toStringAsFixed(1)} MB/s'
+                                          : (item.speedMBps > 0
+                                                ? 'Downloading • ${item.speedMBps.toStringAsFixed(1)} MB/s'
+                                                : 'Starting...')),
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
+                                      color: colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ],
                           ),
                         ],
-                      ),
-                    ],
-                    if (item.status == DownloadStatus.failed) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        item.errorMessage,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: colorScheme.error,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                        if (item.status == DownloadStatus.failed) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            item.errorMessage,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(color: colorScheme.error),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildActionButtons(context, item, colorScheme),
+                ],
               ),
-              const SizedBox(width: 8),
-              _buildActionButtons(context, item, colorScheme),
-            ],
+            ),
           ),
         ),
       ),
@@ -5997,34 +5974,19 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                   Semantics(
                     checked: isSelected,
                     label: isSelected ? 'Deselect track' : 'Select track',
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? colorScheme.primary
-                            : Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected
-                              ? colorScheme.primary
-                              : colorScheme.outline,
-                          width: 2,
-                        ),
-                      ),
-                      child: isSelected
-                          ? Icon(
-                              Icons.check,
-                              color: colorScheme.onPrimary,
-                              size: 16,
-                            )
-                          : null,
+                    child: AnimatedSelectionCheckbox(
+                      visible: true,
+                      selected: isSelected,
+                      colorScheme: colorScheme,
+                      size: 24,
                     ),
                   ),
                   const SizedBox(width: 12),
                 ],
-                // Cover image - supports network URL and local file path
-                _buildUnifiedCoverImage(item, colorScheme, 56),
+                Hero(
+                  tag: 'cover_lib_${item.id}',
+                  child: _buildUnifiedCoverImage(item, colorScheme, 56),
+                ),
                 const SizedBox(width: 12),
 
                 Expanded(
@@ -6052,7 +6014,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          // Source badge
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
@@ -6200,7 +6161,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                     aspectRatio: 1,
                     child: _buildUnifiedCoverImage(item, colorScheme),
                   ),
-                  // Source badge (top-right)
                   Positioned(
                     right: 4,
                     top: 4,
@@ -6224,7 +6184,6 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                       ),
                     ),
                   ),
-                  // Quality badge (top-left)
                   if (item.quality != null && item.quality!.isNotEmpty)
                     Positioned(
                       left: 4,

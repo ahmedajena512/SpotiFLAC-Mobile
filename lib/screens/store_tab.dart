@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:spotiflac_android/l10n/l10n.dart';
 import 'package:spotiflac_android/providers/store_provider.dart';
 import 'package:spotiflac_android/widgets/settings_group.dart';
+import 'package:spotiflac_android/widgets/animation_utils.dart';
 import 'package:spotiflac_android/screens/store/extension_details_screen.dart';
 import 'package:spotiflac_android/utils/app_bar_layout.dart';
 
@@ -259,8 +260,11 @@ class _StoreTabState extends ConsumerState<StoreTab> {
               ),
 
               if (isLoading && extensions.isEmpty)
-                const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: TrackListSkeleton(itemCount: 6),
+                  ),
                 )
               else if (error != null && extensions.isEmpty)
                 SliverFillRemaining(child: _buildErrorState(error, colorScheme))

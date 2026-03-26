@@ -20,6 +20,7 @@ import 'package:spotiflac_android/screens/home_tab.dart'
     show ExtensionAlbumScreen;
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
+import 'package:spotiflac_android/widgets/animation_utils.dart';
 import 'package:spotiflac_android/utils/clickable_metadata.dart';
 
 class _ArtistCache {
@@ -491,12 +492,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                   hasDiscography: hasDiscography,
                 ),
                 if (_isLoadingDiscography)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                  ),
+                  const SliverToBoxAdapter(child: ArtistScreenSkeleton()),
                 if (_error != null)
                   SliverToBoxAdapter(
                     child: Padding(
@@ -959,7 +955,6 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
 
       fetchedCount++;
 
-      // Update progress dialog
       if (mounted) {
         _FetchingProgressDialog.updateProgress(
           context,
@@ -990,7 +985,6 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
       return;
     }
 
-    // Check which tracks are already downloaded
     final historyState = ref.read(downloadHistoryProvider);
     final tracksToQueue = <Track>[];
     int skippedCount = 0;
@@ -1041,10 +1035,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
           content: Text(message),
           action: SnackBarAction(
             label: context.l10n.snackbarViewQueue,
-            onPressed: () {
-              // Navigate to queue tab (index 1)
-              // This will be handled by the navigation system
-            },
+            onPressed: () {},
           ),
         ),
       );
@@ -1851,29 +1842,14 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? colorScheme.primary
-                              : colorScheme.surface.withValues(alpha: 0.9),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? colorScheme.primary
-                                : colorScheme.outline,
-                            width: 2,
-                          ),
+                      child: AnimatedSelectionCheckbox(
+                        visible: true,
+                        selected: isSelected,
+                        colorScheme: colorScheme,
+                        size: 28,
+                        unselectedColor: colorScheme.surface.withValues(
+                          alpha: 0.9,
                         ),
-                        child: isSelected
-                            ? Icon(
-                                Icons.check,
-                                color: colorScheme.onPrimary,
-                                size: 18,
-                              )
-                            : null,
                       ),
                     ),
                   if (showTypeBadge)
@@ -2082,7 +2058,6 @@ class _FetchingProgressDialog extends StatefulWidget {
     required this.onCancel,
   });
 
-  // Static method to update progress from outside
   static void updateProgress(BuildContext context, int current, int total) {
     final state = context
         .findAncestorStateOfType<_FetchingProgressDialogState>();
@@ -2155,7 +2130,6 @@ class _FetchingProgressDialogState extends State<_FetchingProgressDialog> {
             ),
           ),
           const SizedBox(height: 8),
-          // Progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(

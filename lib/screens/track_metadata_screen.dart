@@ -308,12 +308,10 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         storedQuality: _quality,
       );
 
-      // Fill in album name from file tags if stored value is empty
       final needsAlbum =
           resolvedAlbum != null &&
           resolvedAlbum.isNotEmpty &&
           (albumName.isEmpty);
-      // Fill in duration from file if stored value is missing/zero
       final needsDuration =
           resolvedDuration != null &&
           resolvedDuration > 0 &&
@@ -520,6 +518,8 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
 
   String get _filePath =>
       _isLocalItem ? _localLibraryItem!.filePath : _downloadItem!.filePath;
+  String get _coverHeroTag =>
+      _isLocalItem ? 'cover_lib_$_itemId' : 'cover_$_itemId';
   String? get _coverUrl =>
       _isLocalItem ? null : normalizeRemoteHttpUrl(_downloadItem!.coverUrl);
   String? get _localCoverPath =>
@@ -528,7 +528,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
   String get _service => _isLocalItem ? 'local' : _downloadItem!.service;
   DateTime get _addedAt {
     if (_isLocalItem) {
-      // Use file modification time if available, otherwise fall back to scannedAt
       final modTime = _localLibraryItem!.fileModTime;
       if (modTime != null && modTime > 0) {
         return DateTime.fromMillisecondsSinceEpoch(modTime);
@@ -796,38 +795,42 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     double expandedHeight,
     bool showContent,
   ) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (_hasPath(_embeddedCoverPreviewPath))
-          Image.file(
+    final coverChild = _hasPath(_embeddedCoverPreviewPath)
+        ? Image.file(
             File(_embeddedCoverPreviewPath!),
             fit: BoxFit.cover,
             errorBuilder: (_, _, _) => Container(color: colorScheme.surface),
           )
-        else if (_coverUrl != null)
-          CachedNetworkImage(
+        : _coverUrl != null
+        ? CachedNetworkImage(
             imageUrl: _coverUrl!,
             fit: BoxFit.cover,
             cacheManager: CoverCacheManager.instance,
             placeholder: (_, _) => Container(color: colorScheme.surface),
             errorWidget: (_, _, _) => Container(color: colorScheme.surface),
           )
-        else if (_localCoverPath != null && _localCoverPath!.isNotEmpty)
-          Image.file(
+        : _localCoverPath != null && _localCoverPath!.isNotEmpty
+        ? Image.file(
             File(_localCoverPath!),
             fit: BoxFit.cover,
             errorBuilder: (_, _, _) => Container(color: colorScheme.surface),
           )
-        else
-          Container(
+        : Container(
             color: colorScheme.surfaceContainerHighest,
             child: Icon(
               Icons.music_note,
               size: 80,
               color: colorScheme.onSurfaceVariant,
             ),
-          ),
+          );
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Hero(
+          tag: _coverHeroTag,
+          child: Material(color: Colors.transparent, child: coverChild),
+        ),
         Positioned(
           left: 0,
           right: 0,
@@ -1620,7 +1623,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                       ),
                     ),
                   ),
-                  // Show "Embed Lyrics" button if lyrics are from online (not already embedded)
                   if (!_lyricsEmbedded && _fileExists) ...[
                     const SizedBox(height: 16),
                     Center(
@@ -1668,7 +1670,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     try {
       final durationMs = (duration ?? 0) * 1000;
 
-      // First, check if lyrics are embedded in the file
       if (_fileExists) {
         final embeddedResult =
             await PlatformBridge.getLyricsLRCWithSource(
@@ -1702,7 +1703,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         }
       }
 
-      // No embedded lyrics, fetch from online
       final result = await PlatformBridge.getLyricsLRCWithSource(
         _spotifyId ?? '',
         trackName,
@@ -1992,7 +1992,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
           return;
         }
 
-        // Write temp file to SAF tree
         final treeUri = _downloadItem?.downloadTreeUri;
         final relativeDir = _downloadItem?.safRelativeDir ?? '';
         if (treeUri != null && treeUri.isNotEmpty) {
@@ -2039,7 +2038,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         return;
       }
 
-      // Regular file path
       final dir = _getFileDirectory();
       final outputPath = '$dir${Platform.pathSeparator}$baseName.jpg';
 
@@ -2132,7 +2130,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
           return;
         }
 
-        // Write temp file to SAF tree
         final treeUri = _downloadItem?.downloadTreeUri;
         final relativeDir = _downloadItem?.safRelativeDir ?? '';
         if (treeUri != null && treeUri.isNotEmpty) {
@@ -2188,7 +2185,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         return;
       }
 
-      // Regular file path
       final dir = _getFileDirectory();
       final outputPath = '$dir${Platform.pathSeparator}$baseName.lrc';
 
@@ -2263,7 +2259,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
       final result = await PlatformBridge.reEnrichFile(request);
       final method = result['method'] as String?;
 
-      // Update local UI state with enriched metadata from online search
       final enriched = result['enriched_metadata'] as Map<String, dynamic>?;
       if (enriched != null && mounted) {
         setState(() {
@@ -2350,7 +2345,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
           );
         }
 
-        // For SAF files, copy processed temp file back
         if (ffmpegResult != null && tempPath != null && safUri != null) {
           final ok = await PlatformBridge.writeTempToSaf(ffmpegResult, safUri);
           if (!ok && mounted) {
@@ -2363,7 +2357,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                 ),
               ),
             );
-            // Cleanup temp files
             if (_hasPath(downloadedCoverPath)) {
               try {
                 await File(downloadedCoverPath!).delete();
@@ -2381,7 +2374,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
           }
         }
 
-        // Cleanup temp files
         if (tempPath != null && tempPath.isNotEmpty) {
           try {
             await File(tempPath).delete();
@@ -2403,7 +2395,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
           );
         }
 
-        // Cleanup temp cover from Go backend
         if (_hasPath(downloadedCoverPath)) {
           try {
             await File(downloadedCoverPath!).delete();
@@ -2468,7 +2459,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     for (final line in lines) {
       var cleaned = line.trim();
 
-      // Skip metadata tags
       if (_lrcMetadataPattern.hasMatch(cleaned) &&
           !_lrcBackgroundLinePattern.hasMatch(cleaned)) {
         continue;
@@ -2480,7 +2470,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         cleaned = bgMatch.group(1)?.trim() ?? '';
       }
 
-      // Remove line timestamp, inline word-by-word timestamps, and speaker prefix.
       cleaned = cleaned.replaceAll(_lrcTimestampPattern, '').trim();
       cleaned = cleaned.replaceAll(_lrcInlineTimestampPattern, '');
       cleaned = cleaned.replaceFirst(_lrcSpeakerPrefixPattern, '');
@@ -2691,11 +2680,9 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
 
   /// Whether the current file is a CUE sheet (or CUE-referenced)
   bool get _isCueFile {
-    // Check if the raw path has a CUE virtual path suffix
     if (isCueVirtualPath(rawFilePath)) return true;
     final lower = cleanFilePath.toLowerCase();
     if (lower.endsWith('.cue')) return true;
-    // Check if local library item has cue+ format
     if (_isLocalItem && _localLibraryItem != null) {
       final format = _localLibraryItem!.format ?? '';
       if (format.startsWith('cue+')) return true;
@@ -2821,7 +2808,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     final currentFormat = _currentFileFormat;
     final isLosslessSource = currentFormat == 'FLAC' || currentFormat == 'M4A';
 
-    // Build available target formats based on source
     final formats = <String>[];
     if (currentFormat == 'FLAC') {
       formats.addAll(['ALAC', 'MP3', 'Opus']);
@@ -2912,7 +2898,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                       }).toList(),
                     ),
 
-                    // Only show bitrate for lossy targets
                     if (!isLosslessTarget) ...[
                       const SizedBox(height: 16),
                       Text(
@@ -2939,7 +2924,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                       ),
                     ],
 
-                    // Show lossless indicator
                     if (isLosslessTarget && isLosslessSource) ...[
                       const SizedBox(height: 16),
                       Row(
@@ -2997,14 +2981,12 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
   }
 
   void _showCueSplitSheet(BuildContext context) async {
-    // Strip the #trackNN suffix from virtual CUE paths to get the real .cue path
     var cuePath = cleanFilePath;
     final trackSuffix = RegExp(r'#track\d+$');
     if (trackSuffix.hasMatch(cuePath)) {
       cuePath = cuePath.replaceFirst(trackSuffix, '');
     }
 
-    // Show loading indicator
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(context.l10n.snackbarLoadingCueSheet)),
     );
@@ -3099,7 +3081,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                         ),
                   ),
                   const SizedBox(height: 16),
-                  // Track list preview (scrollable, max 200px)
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 200),
                     child: ListView.builder(
@@ -3321,7 +3302,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         workingAudioPath = tempPath;
       }
 
-      // Determine output directory
       final String outputDir;
       final treeUri = !_isLocalItem
           ? (_downloadItem?.downloadTreeUri ?? '')
@@ -3348,7 +3328,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
       if (!mounted) return;
       _showLongSnackBarMessage(_l10nCueSplitSplitting(1, tracks.length));
 
-      // Extract cover from audio file for embedding
       String? coverPath;
       try {
         final tempDir = await getTemporaryDirectory();
@@ -3391,11 +3370,9 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         for (final path in finalOutputPaths) {
           if (path.toLowerCase().endsWith('.flac')) {
             try {
-              // Read existing metadata first
               final metadata = await PlatformBridge.readFileMetadata(path);
               if (metadata['error'] == null) {
                 final fields = <String, String>{'cover_path': coverPath};
-                // Preserve existing fields
                 for (final entry in metadata.entries) {
                   if (entry.key == 'error' || entry.value == null) continue;
                   final v = entry.value.toString().trim();
@@ -3421,7 +3398,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         finalOutputPaths = exportedUris;
       }
 
-      // Cleanup cover temp
       if (coverPath != null) {
         try {
           await File(coverPath).delete();
@@ -3443,7 +3419,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         _showSnackBarMessage(_l10nCueSplitFailed);
       }
     } finally {
-      // Cleanup SAF temp audio copy
       if (safTempAudioPath != null) {
         try {
           await File(safTempAudioPath).delete();
@@ -3562,7 +3537,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
       String? safTempPath;
 
       if (isSaf) {
-        // Copy SAF file to temp for processing
         safTempPath = await PlatformBridge.copyContentUriToTemp(cleanFilePath);
         if (safTempPath == null) {
           if (mounted) {
@@ -3585,7 +3559,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         deleteOriginal: !isSaf, // Don't delete temp copy for SAF, we handle it
       );
 
-      // Cleanup cover temp
       if (coverPath != null) {
         try {
           await File(coverPath).delete();
@@ -3593,7 +3566,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
       }
 
       if (newPath == null) {
-        // Cleanup SAF temp if needed
         if (safTempPath != null) {
           try {
             await File(safTempPath).delete();
@@ -3695,7 +3667,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
           _log.w('Converted SAF file created but failed deleting original URI');
         }
 
-        // Update history with new SAF info
         if (!_isLocalItem) {
           await HistoryDatabase.instance.updateFilePath(
             _downloadItem!.id,
@@ -3707,7 +3678,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
           await ref.read(downloadHistoryProvider.notifier).reloadFromStorage();
         }
 
-        // Cleanup temp files
         try {
           await File(newPath).delete();
         } catch (_) {}
@@ -3717,7 +3687,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
           } catch (_) {}
         }
       } else {
-        // Regular file: update history with new path
         if (!_isLocalItem) {
           await HistoryDatabase.instance.updateFilePath(
             _downloadItem!.id,
@@ -3736,7 +3705,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
             content: Text(context.l10n.trackConvertSuccess(targetFormat)),
           ),
         );
-        // Pop and let the caller refresh
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -3754,7 +3722,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     WidgetRef ref,
     ColorScheme colorScheme,
   ) async {
-    // Read current metadata from file, fall back to item data on failure
     Map<String, dynamic>? fileMetadata;
     try {
       final result = await PlatformBridge.readFileMetadata(cleanFilePath);
@@ -3765,7 +3732,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
       debugPrint('readFileMetadata failed, using item data: $e');
     }
 
-    // Build initial values map — prefer file metadata, fall back to item data
     String val(String key, String? fallback) {
       final v = fileMetadata?[key]?.toString();
       return (v != null && v.isNotEmpty) ? v : (fallback ?? '');
@@ -3811,7 +3777,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
       ScaffoldMessenger.of(this.context).showSnackBar(
         SnackBar(content: Text(this.context.l10n.snackbarMetadataSaved)),
       );
-      // Re-read metadata from file to refresh the display
       try {
         final refreshed = await PlatformBridge.readFileMetadata(cleanFilePath);
         setState(() => _editedMetadata = refreshed);
@@ -4056,10 +4021,8 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
   String? _currentCoverTempDir;
   bool _loadingCurrentCover = false;
 
-  // Auto-fill field selection — which fields the user wants to fetch
   final Set<String> _autoFillFields = {};
 
-  // All auto-fillable fields and their mapping
   static const _fieldDefs = <String, String>{
     'title': 'title',
     'artist': 'artist',
@@ -4685,7 +4648,6 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
         throw StateError('No metadata match resolved for auto-fill');
       }
 
-      // Extract basic metadata from search result
       final enriched = <String, String>{
         'title': (selectedBest['name'] ?? '').toString(),
         'artist': (selectedBest['artists'] ?? selectedBest['artist'] ?? '')
@@ -4763,7 +4725,6 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
 
       if (!mounted) return;
 
-      // Fetch genre/label/copyright from Deezer extended metadata
       if (needsExtended && deezerId != null) {
         try {
           final extended = await PlatformBridge.getDeezerExtendedMetadata(
@@ -4781,10 +4742,9 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
 
       if (!mounted) return;
 
-      // Apply selected fields to controllers
       var filledCount = 0;
       for (final key in _autoFillFields) {
-        if (key == 'cover') continue; // Handle cover separately below
+        if (key == 'cover') continue;
         final value = enriched[key];
         if (value != null &&
             value.isNotEmpty &&
@@ -4798,7 +4758,6 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
         }
       }
 
-      // Handle cover art download
       if (_autoFillFields.contains('cover')) {
         final coverUrl =
             (selectedBest['cover_url'] ?? selectedBest['images'] ?? '')
@@ -5077,7 +5036,6 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
           return;
         }
 
-        // For SAF files, copy the processed temp file back
         if (tempPath != null && safUri != null) {
           final ok = await PlatformBridge.writeTempToSaf(ffmpegResult, safUri);
           if (!ok && mounted) {
@@ -5190,7 +5148,6 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
                   ),
                   _field('Genre', _genreCtrl),
                   _field('ISRC', _isrcCtrl),
-                  // Advanced fields toggle
                   Padding(
                     padding: const EdgeInsets.only(top: 8, bottom: 4),
                     child: InkWell(
@@ -5288,7 +5245,6 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Quick select buttons
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
@@ -5308,7 +5264,6 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Field chips
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Wrap(
@@ -5345,7 +5300,6 @@ class _EditMetadataSheetState extends State<_EditMetadataSheet> {
                 ),
               ),
               const SizedBox(height: 10),
-              // Fetch button
               Padding(
                 padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
                 child: SizedBox(

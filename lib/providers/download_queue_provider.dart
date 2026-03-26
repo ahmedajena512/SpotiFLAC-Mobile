@@ -2421,6 +2421,31 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
     _requestNativeCancel(id);
   }
 
+  void dismissItem(String id) {
+    final item = _findItemById(id);
+    if (item == null) return;
+
+    final isActive =
+        item.status == DownloadStatus.queued ||
+        item.status == DownloadStatus.downloading ||
+        item.status == DownloadStatus.finalizing;
+
+    if (isActive) {
+      _pausePendingItemIds.remove(id);
+      _locallyCancelledItemIds.add(id);
+      _requestNativeCancel(id);
+    } else {
+      _locallyCancelledItemIds.remove(id);
+    }
+
+    final items = state.items.where((entry) => entry.id != id).toList();
+    final currentDownload = state.currentDownload?.id == id
+        ? null
+        : state.currentDownload;
+    state = state.copyWith(items: items, currentDownload: currentDownload);
+    _saveQueueToStorage();
+  }
+
   void clearCompleted() {
     final items = state.items
         .where(

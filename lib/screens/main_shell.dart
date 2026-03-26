@@ -20,6 +20,7 @@ import 'package:spotiflac_android/services/shell_navigation_service.dart';
 import 'package:spotiflac_android/services/share_intent_service.dart';
 import 'package:spotiflac_android/services/update_checker.dart';
 import 'package:spotiflac_android/widgets/update_dialog.dart';
+import 'package:spotiflac_android/widgets/animation_utils.dart';
 import 'package:spotiflac_android/utils/logger.dart';
 
 final _log = AppLogger('MainShell');
@@ -461,32 +462,44 @@ class _MainShellState extends ConsumerState<MainShell>
         label: l10n.navHome,
       ),
       NavigationDestination(
-        icon: Badge(
-          isLabelVisible: queueState > 0,
-          label: Text('$queueState'),
-          child: const Icon(Icons.library_music_outlined),
-        ),
-        selectedIcon: SlidingIcon(
+        icon: AnimatedBadge(
+          count: queueState,
           child: Badge(
             isLabelVisible: queueState > 0,
             label: Text('$queueState'),
-            child: const Icon(Icons.library_music),
+            child: const Icon(Icons.library_music_outlined),
+          ),
+        ),
+        selectedIcon: SlidingIcon(
+          child: AnimatedBadge(
+            count: queueState,
+            child: Badge(
+              isLabelVisible: queueState > 0,
+              label: Text('$queueState'),
+              child: const Icon(Icons.library_music),
+            ),
           ),
         ),
         label: l10n.navLibrary,
       ),
       if (showStore)
         NavigationDestination(
-          icon: Badge(
-            isLabelVisible: storeUpdatesCount > 0,
-            label: Text('$storeUpdatesCount'),
-            child: const Icon(Icons.store_outlined),
-          ),
-          selectedIcon: SwingIcon(
+          icon: AnimatedBadge(
+            count: storeUpdatesCount,
             child: Badge(
               isLabelVisible: storeUpdatesCount > 0,
               label: Text('$storeUpdatesCount'),
-              child: const Icon(Icons.store),
+              child: const Icon(Icons.store_outlined),
+            ),
+          ),
+          selectedIcon: SwingIcon(
+            child: AnimatedBadge(
+              count: storeUpdatesCount,
+              child: Badge(
+                isLabelVisible: storeUpdatesCount > 0,
+                label: Text('$storeUpdatesCount'),
+                child: const Icon(Icons.store),
+              ),
             ),
           ),
           label: l10n.navStore,

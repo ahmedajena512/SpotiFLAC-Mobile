@@ -15,6 +15,7 @@ import 'package:spotiflac_android/providers/playback_provider.dart';
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
 import 'package:spotiflac_android/widgets/playlist_picker_sheet.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
+import 'package:spotiflac_android/widgets/animation_utils.dart';
 
 class PlaylistScreen extends ConsumerStatefulWidget {
   final String playlistName;
@@ -387,8 +388,8 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     if (_isLoading) {
       return const SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Center(child: CircularProgressIndicator()),
+          padding: EdgeInsets.all(16),
+          child: TrackListSkeleton(itemCount: 8),
         ),
       );
     }
@@ -438,9 +439,12 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
         final track = _tracks[index];
         return KeyedSubtree(
           key: ValueKey(track.id),
-          child: _PlaylistTrackItem(
-            track: track,
-            onDownload: () => _downloadTrack(context, track),
+          child: StaggeredListItem(
+            index: index,
+            child: _PlaylistTrackItem(
+              track: track,
+              onDownload: () => _downloadTrack(context, track),
+            ),
           ),
         );
       }, childCount: _tracks.length),
@@ -644,7 +648,6 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
   void _downloadTracks(BuildContext context, List<Track> tracks) {
     if (tracks.isEmpty) return;
 
-    // Skip already-downloaded tracks
     final historyState = ref.read(downloadHistoryProvider);
     final settings = ref.read(settingsProvider);
     final localLibState =
@@ -754,7 +757,6 @@ class _PlaylistTrackItem extends ConsumerWidget {
       }),
     );
 
-    // Check local library for duplicate detection
     final showLocalLibraryIndicator = ref.watch(
       settingsProvider.select(
         (s) => s.localLibraryEnabled && s.localLibraryShowDuplicates,
