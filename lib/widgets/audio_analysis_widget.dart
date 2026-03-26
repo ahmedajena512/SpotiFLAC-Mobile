@@ -593,7 +593,11 @@ class _AudioAnalysisCardState extends State<AudioAnalysisCard> {
         _AudioInfoCard(data: data),
         if (_spectrogramImage != null) ...[
           const SizedBox(height: 12),
-          _SpectrogramView(image: _spectrogramImage!, spectrum: data.spectrum!),
+          _SpectrogramView(
+            image: _spectrogramImage!,
+            sampleRate: data.sampleRate,
+            maxFreq: data.spectrum?.maxFreq ?? data.sampleRate / 2,
+          ),
         ],
       ],
     );
@@ -966,9 +970,14 @@ class _MetricChip extends StatelessWidget {
 
 class _SpectrogramView extends StatelessWidget {
   final ui.Image image;
-  final SpectrogramData spectrum;
+  final int sampleRate;
+  final double maxFreq;
 
-  const _SpectrogramView({required this.image, required this.spectrum});
+  const _SpectrogramView({
+    required this.image,
+    required this.sampleRate,
+    required this.maxFreq,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -992,12 +1001,12 @@ class _SpectrogramView extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  '${context.l10n.audioAnalysisSampleRate}: ${spectrum.sampleRate} Hz',
+                  '${context.l10n.audioAnalysisSampleRate}: $sampleRate Hz',
                   style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
                 ),
                 const Spacer(),
                 Text(
-                  '${context.l10n.audioAnalysisNyquist}: ${(spectrum.maxFreq / 1000).toStringAsFixed(1)} kHz',
+                  '${context.l10n.audioAnalysisNyquist}: ${(maxFreq / 1000).toStringAsFixed(1)} kHz',
                   style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
                 ),
               ],
