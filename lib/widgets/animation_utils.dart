@@ -447,12 +447,14 @@ class ArtistScreenSkeleton extends StatelessWidget {
   final int popularCount;
   final int albumCount;
   final bool showCoverHeader;
+  final bool showPopularSection;
 
   const ArtistScreenSkeleton({
     super.key,
     this.popularCount = 5,
     this.albumCount = 5,
     this.showCoverHeader = true,
+    this.showPopularSection = true,
   });
 
   @override
@@ -479,55 +481,61 @@ class ArtistScreenSkeleton extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
               child: SkeletonBox(width: 120, height: 14, borderRadius: 4),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: SkeletonBox(width: 90, height: 20, borderRadius: 4),
-            ),
-            ...List.generate(popularCount, (index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 24,
-                      child: Center(
-                        child: SkeletonBox(
-                          width: 12,
-                          height: 14,
-                          borderRadius: 4,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const SkeletonBox(width: 48, height: 48, borderRadius: 4),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SkeletonBox(
-                            width: 110 + (index % 4) * 30,
+            if (showPopularSection) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: SkeletonBox(width: 90, height: 20, borderRadius: 4),
+              ),
+              ...List.generate(popularCount, (index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        child: Center(
+                          child: SkeletonBox(
+                            width: 12,
                             height: 14,
                             borderRadius: 4,
                           ),
-                          const SizedBox(height: 6),
-                          SkeletonBox(
-                            width: 70 + (index % 3) * 15,
-                            height: 11,
-                            borderRadius: 4,
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                    const SkeletonBox(width: 20, height: 20, borderRadius: 10),
-                  ],
-                ),
-              );
-            }),
-            const SizedBox(height: 16),
+                      const SizedBox(width: 12),
+                      const SkeletonBox(width: 48, height: 48, borderRadius: 4),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SkeletonBox(
+                              width: 110 + (index % 4) * 30,
+                              height: 14,
+                              borderRadius: 4,
+                            ),
+                            const SizedBox(height: 6),
+                            SkeletonBox(
+                              width: 70 + (index % 3) * 15,
+                              height: 11,
+                              borderRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SkeletonBox(
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 16),
+            ],
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: SkeletonBox(width: 80, height: 20, borderRadius: 4),

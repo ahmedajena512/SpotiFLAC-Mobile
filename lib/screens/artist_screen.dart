@@ -499,6 +499,10 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                               widget.headerImageUrl ??
                               widget.coverUrl) ==
                           null,
+                      showPopularSection:
+                          !widget.artistId.startsWith('deezer:') &&
+                          !widget.artistId.startsWith('qobuz:') &&
+                          !widget.artistId.startsWith('tidal:'),
                     ),
                   ),
                 if (_error != null)
