@@ -196,15 +196,17 @@ jobs:
           # Ensure target directory exists in the iOS project
           mkdir -p ../ios/Frameworks
           
-          # Build XCFramework for iOS devices (real hardware)
-          # We specify iosversion and arch for clarity
-          gomobile bind -target=ios -iosversion=15.0 -o ../ios/Frameworks/Gobackend.xcframework .
+          # Build XCFramework for both iOS devices and Simulator
+          # This is the "best practice" for XCFrameworks to be recognized as complete modules
+          gomobile bind -target=ios,iossimulator -iosversion=15.0 -o ../ios/Frameworks/Gobackend.xcframework .
           
-          # Debugging: Verify results
-          echo "Frameworks directory content:"
+          # Debugging: Verify results and structure
+          echo "==== Frameworks directory content ===="
           ls -la ../ios/Frameworks/
-          echo "Gobackend.xcframework structure:"
+          echo "==== Gobackend.xcframework internal structure ===="
           ls -R ../ios/Frameworks/Gobackend.xcframework/
+        env:
+          CGO_ENABLED: 1
         env:
           CGO_ENABLED: 1
 
@@ -229,22 +231,9 @@ jobs:
 
       - name: Build iOS (unsigned)
         run: |
-          # Build Flutter iOS without codesigning
-          flutter build ios --release --no-codesign --config-only
-
-          # Use xcodebuild with code signing disabled
-          cd ios
-          xcodebuild -workspace Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -archivePath build/Runner.xcarchive \
-            archive \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            DEVELOPMENT_TEAM=""
+          # Use the standard flutter build command with verbose logging
+          # We use --no-codesign as requested
+          flutter build ios --release --no-codesign --verbose
 
       - name: Create IPA
         run: |
