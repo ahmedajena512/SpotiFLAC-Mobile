@@ -44,7 +44,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-7F1A2B3C4D5E6F7A8B9C0D1E /* Gobackend.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = Gobackend.xcframework; path = Frameworks/Gobackend.xcframework; sourceTree = SOURCE_ROOT; }; lastKnownFileType = wrapper.xcframework; name = Gobackend.xcframework; path = Frameworks/Gobackend.xcframework; sourceTree = "<group>"; };
+		7F1A2B3C4D5E6F7A8B9C0D1E /* Gobackend.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = Gobackend.xcframework; path = Frameworks/Gobackend.xcframework; sourceTree = SOURCE_ROOT; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		1871DC9F21B792842409DC4F /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
