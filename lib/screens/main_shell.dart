@@ -21,6 +21,7 @@ import 'package:spotiflac_android/services/share_intent_service.dart';
 import 'package:spotiflac_android/services/update_checker.dart';
 import 'package:spotiflac_android/widgets/update_dialog.dart';
 import 'package:spotiflac_android/widgets/linx_player/mini_player.dart';
+import 'package:spotiflac_android/widgets/animation_utils.dart';
 import 'package:spotiflac_android/utils/logger.dart';
 
 final _log = AppLogger('MainShell');
@@ -32,9 +33,11 @@ class MainShell extends ConsumerStatefulWidget {
   ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends ConsumerState<MainShell> {
+class _MainShellState extends ConsumerState<MainShell>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   late final PageController _pageController;
+  late final AnimationController _tabJumpTransitionController;
   bool _hasCheckedUpdate = false;
   StreamSubscription<String>? _shareSubscription;
   DateTime? _lastBackPress;
@@ -49,6 +52,11 @@ class _MainShellState extends ConsumerState<MainShell> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _currentIndex);
+    _tabJumpTransitionController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+      value: 1,
+    );
     ShellNavigationService.syncState(
       currentTabIndex: _currentIndex,
       showStoreTab: false,
@@ -72,7 +80,7 @@ class _MainShellState extends ConsumerState<MainShell> {
         _log.d('Received shared URL from stream: $url');
         _handleSharedUrl(url);
       },
-      onError: (error) {
+      onError: (Object error) {
         _log.e('Share stream error: $error');
       },
       cancelOnError: false,
@@ -84,9 +92,8 @@ class _MainShellState extends ConsumerState<MainShell> {
     final extState = ref.read(extensionProvider);
     if (!extState.isInitialized) {
       _log.d('Waiting for extensions to initialize before handling URL...');
-      // Wait up to 5 seconds for extensions to initialize
       for (int i = 0; i < 50; i++) {
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
         if (!mounted) return;
         if (ref.read(extensionProvider).isInitialized) {
           _log.d('Extensions initialized, proceeding with URL handling');
@@ -156,7 +163,6 @@ class _MainShellState extends ConsumerState<MainShell> {
     if (!Platform.isAndroid) return;
 
     final settings = ref.read(settingsProvider);
-    // Only show if user is still on legacy storage mode with a download dir set
     if (settings.storageMode == 'saf') return;
     if (settings.downloadDirectory.isEmpty) return;
 
@@ -172,7 +178,7 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     final colorScheme = Theme.of(context).colorScheme;
 
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
@@ -231,6 +237,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   void dispose() {
     _shareSubscription?.cancel();
     _pageController.dispose();
+    _tabJumpTransitionController.dispose();
     super.dispose();
   }
 
@@ -253,7 +260,8 @@ class _MainShellState extends ConsumerState<MainShell> {
     }
 
     if (_currentIndex != index) {
-      final shouldResetHome = index == 0;
+      final previousIndex = _currentIndex;
+      final isNonAdjacentJump = (previousIndex - index).abs() > 1;
       HapticFeedback.selectionClick();
       setState(() => _currentIndex = index);
       final showStore = ref.read(
@@ -264,19 +272,23 @@ class _MainShellState extends ConsumerState<MainShell> {
         showStoreTab: showStore,
       );
       FocusManager.instance.primaryFocus?.unfocus();
-      if (shouldResetHome) {
-        _resetHomeToMain();
+      // Jump directly when skipping intermediate tabs to avoid
+      // sliding through them. For those jumps, keep a short fade-in
+      // so the transition still feels intentional.
+      if (isNonAdjacentJump) {
+        _pageController.jumpToPage(index);
+        _tabJumpTransitionController.forward(from: 0);
+      } else {
+        _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+        );
       }
-      _pageController.animateToPage(
-        index,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutCubic,
-      );
     }
   }
 
   void _onPageChanged(int index) {
-    final previousIndex = _currentIndex;
     if (_currentIndex != index) {
       setState(() => _currentIndex = index);
       final showStore = ref.read(
@@ -287,9 +299,6 @@ class _MainShellState extends ConsumerState<MainShell> {
         showStoreTab: showStore,
       );
       FocusManager.instance.primaryFocus?.unfocus();
-      if (index == 0 && previousIndex != 0) {
-        _resetHomeToMain();
-      }
     }
   }
 
@@ -453,32 +462,44 @@ class _MainShellState extends ConsumerState<MainShell> {
         label: l10n.navHome,
       ),
       NavigationDestination(
-        icon: Badge(
-          isLabelVisible: queueState > 0,
-          label: Text('$queueState'),
-          child: const Icon(Icons.library_music_outlined),
-        ),
-        selectedIcon: SlidingIcon(
+        icon: AnimatedBadge(
+          count: queueState,
           child: Badge(
             isLabelVisible: queueState > 0,
             label: Text('$queueState'),
-            child: const Icon(Icons.library_music),
+            child: const Icon(Icons.library_music_outlined),
+          ),
+        ),
+        selectedIcon: SlidingIcon(
+          child: AnimatedBadge(
+            count: queueState,
+            child: Badge(
+              isLabelVisible: queueState > 0,
+              label: Text('$queueState'),
+              child: const Icon(Icons.library_music),
+            ),
           ),
         ),
         label: l10n.navLibrary,
       ),
       if (showStore)
         NavigationDestination(
-          icon: Badge(
-            isLabelVisible: storeUpdatesCount > 0,
-            label: Text('$storeUpdatesCount'),
-            child: const Icon(Icons.store_outlined),
-          ),
-          selectedIcon: SwingIcon(
+          icon: AnimatedBadge(
+            count: storeUpdatesCount,
             child: Badge(
               isLabelVisible: storeUpdatesCount > 0,
               label: Text('$storeUpdatesCount'),
-              child: const Icon(Icons.store),
+              child: const Icon(Icons.store_outlined),
+            ),
+          ),
+          selectedIcon: SwingIcon(
+            child: AnimatedBadge(
+              count: storeUpdatesCount,
+              child: Badge(
+                isLabelVisible: storeUpdatesCount > 0,
+                label: Text('$storeUpdatesCount'),
+                child: const Icon(Icons.store),
+              ),
             ),
           ),
           label: l10n.navStore,
@@ -509,15 +530,27 @@ class _MainShellState extends ConsumerState<MainShell> {
         body: Stack(
           children: [
             Positioned.fill(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: tabs.length,
-                onPageChanged: _onPageChanged,
-                physics: const NeverScrollableScrollPhysics(),
-                itemBuilder: (context, index) => _KeepAliveTabPage(
-                  key: ValueKey('page-$index'),
-                  child: tabs[index],
+              child: AnimatedBuilder(
+                animation: _tabJumpTransitionController,
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: tabs.length,
+                  onPageChanged: _onPageChanged,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, index) => _KeepAliveTabPage(
+                    key: ValueKey('page-$index'),
+                    child: tabs[index],
+                  ),
                 ),
+                builder: (context, child) {
+                  final t = Curves.easeOutCubic.transform(
+                    _tabJumpTransitionController.value,
+                  );
+                  return Opacity(
+                    opacity: t,
+                    child: Transform.scale(scale: 0.985 + (0.015 * t), child: child),
+                  );
+                },
               ),
             ),
             // Mini Player (only visible when a track is loaded)
@@ -717,7 +750,7 @@ class _SwingIconState extends State<SwingIcon>
       TweenSequenceItem(tween: Tween(begin: 0.15, end: -0.1), weight: 20),
       TweenSequenceItem(tween: Tween(begin: -0.1, end: 0.05), weight: 20),
       TweenSequenceItem(tween: Tween(begin: 0.05, end: 0.0), weight: 20),
-    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    ]).animate(_controller);
 
     _controller.forward();
   }

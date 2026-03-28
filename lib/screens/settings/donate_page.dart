@@ -164,7 +164,13 @@ class _RecentDonorsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    const donorNames = <String>['micahRichie', 'a fan', 'mc nuggets jimmy', 'CJBGR'];
+    const donorNames = <String>[
+      'McNuggets Jimmy',
+      'zcc09',
+      'micahRichie',
+      'a fan',
+      'CJBGR',
+    ];
 
     // Match SettingsGroup color logic
     final cardColor = isDark
@@ -471,17 +477,6 @@ class _CryptoWalletItem extends StatelessWidget {
   }
 }
 
-int _cr(String v) {
-  int r = 0x1F;
-  for (final c in v.codeUnits) {
-    r = (r * 31 + c) & 0x7FFFFFFF;
-  }
-  return r;
-}
-
-// Highlighted supporters (hashes of names).
-const _cv = <int>{1211573191};
-
 class _SupporterChip extends StatelessWidget {
   final String name;
   final ColorScheme colorScheme;
@@ -490,53 +485,32 @@ class _SupporterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final e = _cv.contains(_cr(name));
-    const goldChipColor = Color(0xFFFFF8DC);
-    const goldAccentColor = Color(0xFFB8860B);
-    const goldDarkChipColor = Color(0xFF3A3000);
-
-    final chipColor = e ? goldChipColor : colorScheme.secondaryContainer;
-    final accentColor = e ? goldAccentColor : colorScheme.primary;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final effectiveChipColor = e && isDark ? goldDarkChipColor : chipColor;
-
     return Material(
-      color: effectiveChipColor,
+      color: colorScheme.secondaryContainer,
       borderRadius: BorderRadius.circular(20),
-      child: Container(
-        decoration: e
-            ? BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: accentColor.withValues(alpha: 0.4),
-                  width: 1,
-                ),
-              )
-            : null,
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircleAvatar(
               radius: 10,
-              backgroundColor: accentColor.withValues(alpha: 0.2),
-              child: e
-                  ? Icon(Icons.star_rounded, size: 12, color: accentColor)
-                  : Text(
-                      name.isNotEmpty ? name[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: accentColor,
-                      ),
-                    ),
+              backgroundColor: colorScheme.primary.withValues(alpha: 0.2),
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.primary,
+                ),
+              ),
             ),
             const SizedBox(width: 8),
             Text(
               name,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: e ? accentColor : colorScheme.onSecondaryContainer,
-                fontWeight: e ? FontWeight.w600 : FontWeight.w500,
+                color: colorScheme.onSecondaryContainer,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

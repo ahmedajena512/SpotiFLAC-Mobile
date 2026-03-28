@@ -26,7 +26,7 @@ class TrackCollectionQuickActions extends ConsumerWidget {
     Track track,
   ) {
     final colorScheme = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,

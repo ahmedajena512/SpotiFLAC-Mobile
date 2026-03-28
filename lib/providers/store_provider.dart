@@ -218,18 +218,21 @@ class StoreNotifier extends Notifier<StoreState> {
   Future<void> initialize(String cacheDir) async {
     if (state.isInitialized) return;
 
-    state = state.copyWith(isLoading: true, clearError: true);
+    // Load saved registry URL early to avoid UI flash (empty → setup screen)
+    final prefs = await SharedPreferences.getInstance();
+    final savedUrl = prefs.getString(_registryUrlPrefKey) ?? '';
+
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      registryUrl: savedUrl,
+    );
 
     try {
       await PlatformBridge.initExtensionStore(cacheDir);
 
-      // Load saved registry URL from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final savedUrl = prefs.getString(_registryUrlPrefKey) ?? '';
-
       if (savedUrl.isNotEmpty) {
         await PlatformBridge.setStoreRegistryUrl(savedUrl);
-        state = state.copyWith(registryUrl: savedUrl);
         await refresh();
       }
 
@@ -261,13 +264,12 @@ class StoreNotifier extends Notifier<StoreState> {
       // Read back the resolved URL (may differ from input after normalisation).
       final resolvedUrl = await PlatformBridge.getStoreRegistryUrl();
 
-      // Persist to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_registryUrlPrefKey, resolvedUrl);
 
       state = state.copyWith(
         registryUrl: resolvedUrl,
-        extensions: const [], // Clear old extensions
+        extensions: const [],
       );
 
       _log.i('Registry URL set to: $resolvedUrl');

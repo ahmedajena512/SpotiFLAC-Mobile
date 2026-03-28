@@ -352,7 +352,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aboutAppDescription =>
-      'Tidal、Qobuz、Amazon Music から Spotify のトラックをロスレス品質でダウンロードします。';
+      'Download Spotify tracks in lossless quality from Tidal and Qobuz.';
 
   @override
   String get artistAlbums => 'アルバム';
@@ -755,13 +755,43 @@ class AppLocalizationsJa extends AppLocalizations {
   String get searchPlaylists => 'プレイリスト';
 
   @override
+  String get searchSortTitle => 'Sort Results';
+
+  @override
+  String get searchSortDefault => 'Default';
+
+  @override
+  String get searchSortTitleAZ => 'Title (A-Z)';
+
+  @override
+  String get searchSortTitleZA => 'Title (Z-A)';
+
+  @override
+  String get searchSortArtistAZ => 'Artist (A-Z)';
+
+  @override
+  String get searchSortArtistZA => 'Artist (Z-A)';
+
+  @override
+  String get searchSortDurationShort => 'Duration (Shortest)';
+
+  @override
+  String get searchSortDurationLong => 'Duration (Longest)';
+
+  @override
+  String get searchSortDateOldest => 'Release Date (Oldest)';
+
+  @override
+  String get searchSortDateNewest => 'Release Date (Newest)';
+
+  @override
   String get tooltipPlay => '再生';
 
   @override
   String get filenameFormat => 'ファイル名の形式';
 
   @override
-  String get filenameShowAdvancedTags => 'Show advanced tags';
+  String get filenameShowAdvancedTags => '高度なタグを表示';
 
   @override
   String get filenameShowAdvancedTagsDescription =>
@@ -1138,7 +1168,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackLyricsEmbedded => 'Lyrics embedded successfully';
 
   @override
-  String get trackInstrumental => 'Instrumental track';
+  String get trackInstrumental => 'インストゥルメンタルのトラック';
 
   @override
   String get trackCopiedToClipboard => 'クリップボードにコピーしました';
@@ -1380,17 +1410,39 @@ class AppLocalizationsJa extends AppLocalizations {
   String get qualityHiResFlacMaxSubtitle => '24-bit / 最大 192kHz';
 
   @override
+  String get downloadLossy320 => 'Lossy 320kbps';
+
+  @override
+  String get downloadLossyFormat => 'Lossy Format';
+
+  @override
+  String get downloadLossy320Format => 'Lossy 320kbps Format';
+
+  @override
+  String get downloadLossy320FormatDesc =>
+      'Choose the output format for Tidal 320kbps lossy downloads. The original AAC stream will be converted to your selected format.';
+
+  @override
+  String get downloadLossyMp3 => 'MP3 320kbps';
+
+  @override
+  String get downloadLossyMp3Subtitle => 'Best compatibility, ~10MB per track';
+
+  @override
+  String get downloadLossyOpus256 => 'Opus 256kbps';
+
+  @override
+  String get downloadLossyOpus256Subtitle =>
+      'Best quality Opus, ~8MB per track';
+
+  @override
+  String get downloadLossyOpus128 => 'Opus 128kbps';
+
+  @override
+  String get downloadLossyOpus128Subtitle => 'Smallest size, ~4MB per track';
+
+  @override
   String get qualityNote => '実際の品質はサービスからのトラックの可用性に依存します';
-
-  @override
-  String get youtubeQualityNote =>
-      'YouTube provides lossy audio only. Not part of lossless fallback.';
-
-  @override
-  String get youtubeOpusBitrateTitle => 'YouTube Opus のビットレート';
-
-  @override
-  String get youtubeMp3BitrateTitle => 'YouTube MP3 のビットレート';
 
   @override
   String get downloadAskBeforeDownload => 'ダウンロード前に確認する';
@@ -1486,6 +1538,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get albumFolderArtistAlbumSinglesSubtitle =>
       'Artist/Album/ and Artist/Singles/';
+
+  @override
+  String get albumFolderArtistAlbumFlat => 'Artist / Album (Singles flat)';
+
+  @override
+  String get albumFolderArtistAlbumFlatSubtitle =>
+      'Artist/Album/ and Artist/song.flac';
 
   @override
   String get downloadedAlbumDeleteSelected => '選択済みを削除';
@@ -1877,7 +1936,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get tutorialWelcomeTip2 =>
-      'Get FLAC quality audio from Tidal, Qobuz, or Amazon Music';
+      'Get FLAC quality audio from Tidal, Qobuz, or Deezer';
 
   @override
   String get tutorialWelcomeTip3 =>
@@ -2229,7 +2288,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackConvertFailed => '変換に失敗しました';
 
   @override
-  String get cueSplitTitle => 'Split CUE Sheet';
+  String get cueSplitTitle => '分割 CUE シート';
 
   @override
   String get cueSplitSubtitle => 'Split CUE+FLAC into individual tracks';
@@ -2379,7 +2438,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionRemoveFromPlaylist => 'Remove from playlist';
 
   @override
-  String get collectionRemoveFromFolder => 'Remove from folder';
+  String get collectionRemoveFromFolder => 'フォルダから削除';
 
   @override
   String collectionRemoved(String trackName) {
@@ -2413,26 +2472,26 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackOptionRemoveFromLoved => 'Remove from Loved';
 
   @override
-  String get trackOptionAddToWishlist => 'Add to Wishlist';
+  String get trackOptionAddToWishlist => 'ウィッシュリストに追加';
 
   @override
-  String get trackOptionRemoveFromWishlist => 'Remove from Wishlist';
+  String get trackOptionRemoveFromWishlist => 'ウィッシュから削除';
 
   @override
-  String get collectionPlaylistChangeCover => 'Change cover image';
+  String get collectionPlaylistChangeCover => 'カバー画像を変更';
 
   @override
-  String get collectionPlaylistRemoveCover => 'Remove cover image';
+  String get collectionPlaylistRemoveCover => 'カバー画像を削除';
 
   @override
   String selectionShareCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'tracks',
-      one: 'track',
+      other: '個のトラック',
+      one: '個のトラック',
     );
-    return 'Share $count $_temp0';
+    return '$count $_temp0を共有';
   }
 
   @override
@@ -2453,7 +2512,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get selectionConvertNoConvertible => 'No convertible tracks selected';
 
   @override
-  String get selectionBatchConvertConfirmTitle => 'Batch Convert';
+  String get selectionBatchConvertConfirmTitle => '一括変換';
 
   @override
   String selectionBatchConvertConfirmMessage(
@@ -2670,6 +2729,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get downloadArtistNameFilters => 'Artist Name Filters';
+
+  @override
+  String get downloadCreatePlaylistSourceFolder =>
+      'Create playlist source folder';
+
+  @override
+  String get downloadCreatePlaylistSourceFolderEnabled =>
+      'Playlist downloads use Playlist/ plus your normal folder structure.';
+
+  @override
+  String get downloadCreatePlaylistSourceFolderDisabled =>
+      'Playlist downloads use the normal folder structure only.';
+
+  @override
+  String get downloadCreatePlaylistSourceFolderRedundant =>
+      'By Playlist already places downloads inside a playlist folder.';
 
   @override
   String get downloadSongLinkRegion => 'SongLink Region';
@@ -2901,4 +2976,106 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get editMetadataSelectEmpty => 'Empty only';
+
+  @override
+  String queueDownloadingCount(int count) {
+    return 'Downloading ($count)';
+  }
+
+  @override
+  String get queueDownloadedHeader => 'Downloaded';
+
+  @override
+  String get queueFilteringIndicator => 'Filtering...';
+
+  @override
+  String queueTrackCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tracks',
+      one: '1 track',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String queueAlbumCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count albums',
+      one: '1 album',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueEmptyAlbums => 'No album downloads';
+
+  @override
+  String get queueEmptyAlbumsSubtitle =>
+      'Download multiple tracks from an album to see them here';
+
+  @override
+  String get queueEmptySingles => 'No single downloads';
+
+  @override
+  String get queueEmptySinglesSubtitle =>
+      'Single track downloads will appear here';
+
+  @override
+  String get queueEmptyHistory => 'No download history';
+
+  @override
+  String get queueEmptyHistorySubtitle => 'Downloaded tracks will appear here';
+
+  @override
+  String get selectionAllPlaylistsSelected => 'All playlists selected';
+
+  @override
+  String get selectionTapPlaylistsToSelect => 'Tap playlists to select';
+
+  @override
+  String get selectionSelectPlaylistsToDelete => 'Select playlists to delete';
+
+  @override
+  String get audioAnalysisTitle => 'Audio Quality Analysis';
+
+  @override
+  String get audioAnalysisDescription =>
+      'Verify lossless quality with spectrum analysis';
+
+  @override
+  String get audioAnalysisAnalyzing => 'Analyzing audio...';
+
+  @override
+  String get audioAnalysisSampleRate => 'Sample Rate';
+
+  @override
+  String get audioAnalysisBitDepth => 'Bit Depth';
+
+  @override
+  String get audioAnalysisChannels => 'Channels';
+
+  @override
+  String get audioAnalysisDuration => 'Duration';
+
+  @override
+  String get audioAnalysisNyquist => 'Nyquist';
+
+  @override
+  String get audioAnalysisFileSize => 'Size';
+
+  @override
+  String get audioAnalysisDynamicRange => 'Dynamic Range';
+
+  @override
+  String get audioAnalysisPeak => 'Peak';
+
+  @override
+  String get audioAnalysisRms => 'RMS';
+
+  @override
+  String get audioAnalysisSamples => 'Samples';
 }

@@ -23,12 +23,14 @@ import 'package:spotiflac_android/services/downloaded_embedded_cover_resolver.da
 import 'package:spotiflac_android/services/platform_bridge.dart';
 import 'package:spotiflac_android/utils/app_bar_layout.dart';
 import 'package:spotiflac_android/utils/file_access.dart';
+import 'package:spotiflac_android/utils/string_utils.dart';
 import 'package:spotiflac_android/screens/playlist_screen.dart';
 import 'package:spotiflac_android/screens/downloaded_album_screen.dart';
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
 import 'package:spotiflac_android/providers/playback_provider.dart';
 import 'package:spotiflac_android/services/download_request_payload.dart';
+import 'package:spotiflac_android/widgets/animation_utils.dart';
 import 'package:spotiflac_android/utils/clickable_metadata.dart';
 
 class HomeTab extends ConsumerStatefulWidget {
@@ -82,6 +84,18 @@ class _SearchResultBuckets {
     required this.playlistItems,
     required this.artistItems,
   });
+}
+
+enum _SearchSortOption {
+  defaultOrder,
+  titleAsc,
+  titleDesc,
+  artistAsc,
+  artistDesc,
+  durationAsc,
+  durationDesc,
+  dateAsc,
+  dateDesc,
 }
 
 const _homeHistoryPreviewLimit = 48;
@@ -245,6 +259,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
   Map<String, (double, double)>? _thumbnailSizesCache;
   List<Track>? _searchBucketsSourceTracks;
   _SearchResultBuckets? _searchBucketsCache;
+  _SearchSortOption _searchSortOption = _SearchSortOption.defaultOrder;
 
   double _responsiveScale({
     required BuildContext context,
@@ -281,13 +296,13 @@ class _HomeTabState extends ConsumerState<HomeTab>
   double _exploreCardSize(BuildContext context) {
     final scale = _responsiveScale(context: context, min: 0.82, max: 1.08);
     final textScale = _effectiveTextScale(context);
-    return 120 * scale * (1 + (textScale - 1) * 0.12);
+    return 145 * scale * (1 + (textScale - 1) * 0.12);
   }
 
   double _exploreSectionHeight(BuildContext context) {
     final cardSize = _exploreCardSize(context);
     final textScale = _effectiveTextScale(context);
-    return cardSize + 55 + ((textScale - 1) * 12);
+    return cardSize + 58 + ((textScale - 1) * 12);
   }
 
   @override
@@ -491,6 +506,9 @@ class _HomeTabState extends ConsumerState<HomeTab>
 
     if (searchProvider == null || searchProvider.isEmpty) return false;
 
+    // Built-in providers (tidal, qobuz) also support live search
+    if (_builtInSearchProviders.contains(searchProvider)) return true;
+
     final extension = extState.extensions
         .where((e) => e.id == searchProvider && e.enabled)
         .firstOrNull;
@@ -540,13 +558,16 @@ class _HomeTabState extends ConsumerState<HomeTab>
           pending != query &&
           mounted &&
           _urlController.text.trim() == pending) {
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
         if (mounted && _urlController.text.trim() == pending) {
           _executeLiveSearch(pending);
         }
       }
     }
   }
+
+  /// Built-in search providers that are not extensions
+  static const _builtInSearchProviders = {'tidal', 'qobuz'};
 
   Future<void> _performSearch(String query, {String? filterOverride}) async {
     final settings = ref.read(settingsProvider);
@@ -559,10 +580,16 @@ class _HomeTabState extends ConsumerState<HomeTab>
         '${searchProvider ?? 'default'}:$query:${selectedFilter ?? 'all'}';
     if (_lastSearchQuery == searchKey) return;
     _lastSearchQuery = searchKey;
+    _searchSortOption = _SearchSortOption.defaultOrder;
+
+    final isBuiltInProvider =
+        searchProvider != null &&
+        _builtInSearchProviders.contains(searchProvider);
 
     final isExtensionEnabled =
         searchProvider != null &&
         searchProvider.isNotEmpty &&
+        !isBuiltInProvider &&
         extState.extensions.any((e) => e.id == searchProvider && e.enabled);
 
     if (isExtensionEnabled) {
@@ -573,10 +600,20 @@ class _HomeTabState extends ConsumerState<HomeTab>
       await ref
           .read(trackProvider.notifier)
           .customSearch(searchProvider, query, options: options);
+    } else if (isBuiltInProvider) {
+      // Use built-in Tidal or Qobuz search
+      await ref
+          .read(trackProvider.notifier)
+          .search(
+            query,
+            filterOverride: selectedFilter,
+            builtInSearchProvider: searchProvider,
+          );
     } else {
       if (searchProvider != null &&
           searchProvider.isNotEmpty &&
-          !isExtensionEnabled) {
+          !isExtensionEnabled &&
+          !isBuiltInProvider) {
         ref.read(settingsProvider.notifier).setSearchProvider(null);
       }
       await ref
@@ -646,7 +683,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
       final extensionId = trackState.searchExtensionId;
       Navigator.push(
         context,
-        MaterialPageRoute(
+        MaterialPageRoute<void>(
           builder: (context) => AlbumScreen(
             albumId: trackState.albumId!,
             albumName: trackState.albumName!,
@@ -673,11 +710,13 @@ class _HomeTabState extends ConsumerState<HomeTab>
 
       Navigator.push(
         context,
-        MaterialPageRoute(
+        MaterialPageRoute<void>(
           builder: (context) => PlaylistScreen(
             playlistName: trackState.playlistName!,
             coverUrl: trackState.coverUrl,
             tracks: trackState.tracks,
+            recommendedService:
+                trackState.searchExtensionId ?? trackState.searchSource,
           ),
         ),
       );
@@ -692,7 +731,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
       final extensionId = trackState.searchExtensionId;
       Navigator.push(
         context,
-        MaterialPageRoute(
+        MaterialPageRoute<void>(
           builder: (context) => ArtistScreen(
             artistId: trackState.artistId!,
             artistName: trackState.artistName!,
@@ -720,6 +759,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
           trackName: track.name,
           artistName: track.artistName,
           coverUrl: track.coverUrl,
+          recommendedService: trackState.searchSource,
           onSelect: (quality, service) {
             ref
                 .read(downloadQueueProvider.notifier)
@@ -760,7 +800,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
       if (progressDialogInitialized || !mounted) return;
       progressDialogInitialized = true;
       progressDialogVisible = true;
-      showDialog(
+      showDialog<void>(
         context: this.context,
         useRootNavigator: false,
         barrierDismissible: false,
@@ -1260,8 +1300,8 @@ class _HomeTabState extends ConsumerState<HomeTab>
                   exploreLoading)
                 const SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(child: CircularProgressIndicator()),
+                    padding: EdgeInsets.all(16),
+                    child: TrackListSkeleton(itemCount: 5),
                   ),
                 ),
 
@@ -1464,7 +1504,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         delegate: SliverChildBuilderDelegate((context, index) {
           if (hasGreeting && index == 0) {
             return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: Text(
                 greeting,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -1479,7 +1519,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
             return _buildExploreSection(sections[sectionIndex], colorScheme);
           }
 
-          return const SizedBox(height: 16);
+          return const SizedBox(height: 24);
         }, childCount: totalCount),
       ),
     ];
@@ -1495,7 +1535,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
           child: Text(
             section.title,
             style: Theme.of(
@@ -1511,7 +1551,11 @@ class _HomeTabState extends ConsumerState<HomeTab>
             itemCount: section.items.length,
             itemBuilder: (context, index) {
               final item = section.items[index];
-              return _buildExploreItem(item, colorScheme);
+              return StaggeredListItem(
+                index: index,
+                staggerDelay: const Duration(milliseconds: 50),
+                child: _buildExploreItem(item, colorScheme),
+              );
             },
           ),
         ),
@@ -1558,7 +1602,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(
-                    isArtist ? cardSize / 2 : 8,
+                    isArtist ? cardSize / 2 : 10,
                   ),
                   child: item.coverUrl != null && item.coverUrl!.isNotEmpty
                       ? CachedNetworkImage(
@@ -1597,8 +1641,8 @@ class _HomeTabState extends ConsumerState<HomeTab>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: isArtist ? TextAlign.center : TextAlign.start,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
                 ),
@@ -1611,7 +1655,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
-                      fontSize: 11,
+                      fontSize: 12,
                     ),
                   ),
               ],
@@ -1649,7 +1693,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
       case 'album':
         Navigator.push(
           context,
-          MaterialPageRoute(
+          MaterialPageRoute<void>(
             builder: (context) => ExtensionAlbumScreen(
               extensionId: extensionId,
               albumId: item.id,
@@ -1662,7 +1706,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
       case 'playlist':
         Navigator.push(
           context,
-          MaterialPageRoute(
+          MaterialPageRoute<void>(
             builder: (context) => ExtensionPlaylistScreen(
               extensionId: extensionId,
               playlistId: item.id,
@@ -1675,7 +1719,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
       case 'artist':
         Navigator.push(
           context,
-          MaterialPageRoute(
+          MaterialPageRoute<void>(
             builder: (context) => ExtensionArtistScreen(
               extensionId: extensionId,
               artistId: item.id,
@@ -1696,7 +1740,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
   void _showTrackBottomSheet(ExploreItem item) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
       backgroundColor: colorScheme.surface,
@@ -1842,7 +1886,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
     if (item.albumId != null && item.albumId!.isNotEmpty) {
       Navigator.push(
         context,
-        MaterialPageRoute(
+        MaterialPageRoute<void>(
           builder: (context) => ExtensionAlbumScreen(
             extensionId: item.providerId ?? 'spotify-web',
             albumId: item.albumId!,
@@ -2101,10 +2145,12 @@ class _HomeTabState extends ConsumerState<HomeTab>
         if (item.providerId != null &&
             item.providerId!.isNotEmpty &&
             item.providerId != 'deezer' &&
-            item.providerId != 'spotify') {
+            item.providerId != 'spotify' &&
+            item.providerId != 'tidal' &&
+            item.providerId != 'qobuz') {
           Navigator.push(
             context,
-            MaterialPageRoute(
+            MaterialPageRoute<void>(
               builder: (context) => ExtensionArtistScreen(
                 extensionId: item.providerId!,
                 artistId: item.id,
@@ -2116,7 +2162,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         } else {
           Navigator.push(
             context,
-            MaterialPageRoute(
+            MaterialPageRoute<void>(
               builder: (context) => ArtistScreen(
                 artistId: item.id,
                 artistName: item.name,
@@ -2130,7 +2176,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         if (item.providerId == 'download') {
           Navigator.push(
             context,
-            MaterialPageRoute(
+            MaterialPageRoute<void>(
               builder: (context) => DownloadedAlbumScreen(
                 albumName: item.name,
                 artistName: item.subtitle ?? '',
@@ -2141,10 +2187,12 @@ class _HomeTabState extends ConsumerState<HomeTab>
         } else if (item.providerId != null &&
             item.providerId!.isNotEmpty &&
             item.providerId != 'deezer' &&
-            item.providerId != 'spotify') {
+            item.providerId != 'spotify' &&
+            item.providerId != 'tidal' &&
+            item.providerId != 'qobuz') {
           Navigator.push(
             context,
-            MaterialPageRoute(
+            MaterialPageRoute<void>(
               builder: (context) => ExtensionAlbumScreen(
                 extensionId: item.providerId!,
                 albumId: item.id,
@@ -2156,7 +2204,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         } else {
           Navigator.push(
             context,
-            MaterialPageRoute(
+            MaterialPageRoute<void>(
               builder: (context) => AlbumScreen(
                 albumId: item.id,
                 albumName: item.name,
@@ -2189,10 +2237,12 @@ class _HomeTabState extends ConsumerState<HomeTab>
         if (item.providerId != null &&
             item.providerId!.isNotEmpty &&
             item.providerId != 'deezer' &&
-            item.providerId != 'spotify') {
+            item.providerId != 'spotify' &&
+            item.providerId != 'tidal' &&
+            item.providerId != 'qobuz') {
           Navigator.push(
             context,
-            MaterialPageRoute(
+            MaterialPageRoute<void>(
               builder: (context) => ExtensionPlaylistScreen(
                 extensionId: item.providerId!,
                 playlistId: item.id,
@@ -2204,7 +2254,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         } else {
           Navigator.push(
             context,
-            MaterialPageRoute(
+            MaterialPageRoute<void>(
               builder: (context) => PlaylistScreen(
                 playlistName: item.name,
                 coverUrl: item.imageUrl,
@@ -2227,14 +2277,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         );
     if (!mounted) return;
     final result = await navigator.push(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 250),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            TrackMetadataScreen(item: item),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-            FadeTransition(opacity: animation, child: child),
-      ),
+      slidePageRoute<bool>(page: TrackMetadataScreen(item: item)),
     );
     await DownloadedEmbeddedCoverResolver.scheduleRefreshForPath(
       item.filePath,
@@ -2372,6 +2415,168 @@ class _HomeTabState extends ConsumerState<HomeTab>
     );
   }
 
+  // ── Search result sorting ──────────────────────────────────────────────
+
+  String _sortOptionLabel(_SearchSortOption option) {
+    switch (option) {
+      case _SearchSortOption.defaultOrder:
+        return context.l10n.searchSortDefault;
+      case _SearchSortOption.titleAsc:
+        return context.l10n.searchSortTitleAZ;
+      case _SearchSortOption.titleDesc:
+        return context.l10n.searchSortTitleZA;
+      case _SearchSortOption.artistAsc:
+        return context.l10n.searchSortArtistAZ;
+      case _SearchSortOption.artistDesc:
+        return context.l10n.searchSortArtistZA;
+      case _SearchSortOption.durationAsc:
+        return context.l10n.searchSortDurationShort;
+      case _SearchSortOption.durationDesc:
+        return context.l10n.searchSortDurationLong;
+      case _SearchSortOption.dateAsc:
+        return context.l10n.searchSortDateOldest;
+      case _SearchSortOption.dateDesc:
+        return context.l10n.searchSortDateNewest;
+    }
+  }
+
+  void _showSortOptions(ColorScheme colorScheme) {
+    var tempSort = _searchSortOption;
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: colorScheme.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 32,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        context.l10n.searchSortTitle,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () => setSheetState(
+                          () => tempSort = _SearchSortOption.defaultOrder,
+                        ),
+                        child: Text(context.l10n.libraryFilterReset),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _SearchSortOption.values.map((option) {
+                      return FilterChip(
+                        label: Text(_sortOptionLabel(option)),
+                        selected: tempSort == option,
+                        showCheckmark: false,
+                        onSelected: (_) =>
+                            setSheetState(() => tempSort = option),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        if (_searchSortOption != tempSort) {
+                          setState(() {
+                            _searchSortOption = tempSort;
+                          });
+                        }
+                      },
+                      child: Text(context.l10n.libraryFilterApply),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  List<T> _applySortToList<T>(
+    List<T> items,
+    String Function(T) getName,
+    String Function(T) getArtist,
+    int Function(T) getDuration,
+    String? Function(T) getDate,
+  ) {
+    if (_searchSortOption == _SearchSortOption.defaultOrder) return items;
+    final sorted = List<T>.of(items);
+    switch (_searchSortOption) {
+      case _SearchSortOption.defaultOrder:
+        break;
+      case _SearchSortOption.titleAsc:
+        sorted.sort(
+          (a, b) =>
+              getName(a).toLowerCase().compareTo(getName(b).toLowerCase()),
+        );
+      case _SearchSortOption.titleDesc:
+        sorted.sort(
+          (a, b) =>
+              getName(b).toLowerCase().compareTo(getName(a).toLowerCase()),
+        );
+      case _SearchSortOption.artistAsc:
+        sorted.sort(
+          (a, b) =>
+              getArtist(a).toLowerCase().compareTo(getArtist(b).toLowerCase()),
+        );
+      case _SearchSortOption.artistDesc:
+        sorted.sort(
+          (a, b) =>
+              getArtist(b).toLowerCase().compareTo(getArtist(a).toLowerCase()),
+        );
+      case _SearchSortOption.durationAsc:
+        sorted.sort((a, b) => getDuration(a).compareTo(getDuration(b)));
+      case _SearchSortOption.durationDesc:
+        sorted.sort((a, b) => getDuration(b).compareTo(getDuration(a)));
+      case _SearchSortOption.dateAsc:
+        sorted.sort((a, b) {
+          final da = getDate(a) ?? '';
+          final db = getDate(b) ?? '';
+          return da.compareTo(db);
+        });
+      case _SearchSortOption.dateDesc:
+        sorted.sort((a, b) {
+          final da = getDate(a) ?? '';
+          final db = getDate(b) ?? '';
+          return db.compareTo(da);
+        });
+    }
+    return sorted;
+  }
+
   List<Widget> _buildSearchResults({
     required List<Track> tracks,
     required List<SearchArtist>? searchArtists,
@@ -2385,6 +2590,15 @@ class _HomeTabState extends ConsumerState<HomeTab>
     required bool showLocalLibraryIndicator,
     required Map<String, (double, double)> thumbnailSizesByExtensionId,
   }) {
+    final hasActualData =
+        tracks.isNotEmpty ||
+        (searchArtists != null && searchArtists.isNotEmpty) ||
+        (searchAlbums != null && searchAlbums.isNotEmpty) ||
+        (searchPlaylists != null && searchPlaylists.isNotEmpty);
+
+    if (!hasActualData && isLoading) {
+      return [const SliverToBoxAdapter(child: HomeSearchSkeleton())];
+    }
     if (!hasResults) {
       return [const SliverToBoxAdapter(child: SizedBox.shrink())];
     }
@@ -2395,6 +2609,59 @@ class _HomeTabState extends ConsumerState<HomeTab>
     final albumItems = buckets.albumItems;
     final playlistItems = buckets.playlistItems;
     final artistItems = buckets.artistItems;
+
+    final sortedArtists = searchArtists != null && searchArtists.isNotEmpty
+        ? _applySortToList<SearchArtist>(
+            searchArtists,
+            (a) => a.name,
+            (a) => a.name,
+            (a) => 0,
+            (a) => null,
+          )
+        : searchArtists;
+
+    final sortedAlbums = searchAlbums != null && searchAlbums.isNotEmpty
+        ? _applySortToList<SearchAlbum>(
+            searchAlbums,
+            (a) => a.name,
+            (a) => a.artists,
+            (a) => 0,
+            (a) => a.releaseDate,
+          )
+        : searchAlbums;
+
+    final sortedPlaylists =
+        searchPlaylists != null && searchPlaylists.isNotEmpty
+        ? _applySortToList<SearchPlaylist>(
+            searchPlaylists,
+            (p) => p.name,
+            (p) => p.owner,
+            (p) => 0,
+            (p) => null,
+          )
+        : searchPlaylists;
+
+    List<Track> sortedTracks;
+    List<int> sortedTrackIndexes;
+    if (realTracks.isNotEmpty &&
+        _searchSortOption != _SearchSortOption.defaultOrder) {
+      final paired = List.generate(
+        realTracks.length,
+        (i) => (realTracks[i], realTrackIndexes[i]),
+      );
+      final sortedPairs = _applySortToList<(Track, int)>(
+        paired,
+        (p) => p.$1.name,
+        (p) => p.$1.artistName,
+        (p) => p.$1.duration,
+        (p) => p.$1.releaseDate,
+      );
+      sortedTracks = sortedPairs.map((p) => p.$1).toList();
+      sortedTrackIndexes = sortedPairs.map((p) => p.$2).toList();
+    } else {
+      sortedTracks = realTracks;
+      sortedTrackIndexes = realTrackIndexes;
+    }
 
     final slivers = <Widget>[
       if (error != null)
@@ -2413,24 +2680,28 @@ class _HomeTabState extends ConsumerState<HomeTab>
         ),
     ];
 
-    if (searchArtists != null && searchArtists.isNotEmpty) {
+    bool sortButtonShown = false;
+
+    if (sortedArtists != null && sortedArtists.isNotEmpty) {
       slivers.addAll(
         _buildVirtualizedResultSection(
           title: context.l10n.searchArtists,
-          itemCount: searchArtists.length,
+          itemCount: sortedArtists.length,
           colorScheme: colorScheme,
+          showSortButton: !sortButtonShown,
           itemBuilder: (index, showDivider) => _SearchArtistItemWidget(
-            key: ValueKey('search-artist-${searchArtists[index].id}'),
-            artist: searchArtists[index],
+            key: ValueKey('search-artist-${sortedArtists[index].id}'),
+            artist: sortedArtists[index],
             showDivider: showDivider,
             onTap: () => _navigateToArtist(
-              searchArtists[index].id,
-              searchArtists[index].name,
-              searchArtists[index].imageUrl,
+              sortedArtists[index].id,
+              sortedArtists[index].name,
+              sortedArtists[index].imageUrl,
             ),
           ),
         ),
       );
+      sortButtonShown = true;
     }
 
     if (artistItems.isNotEmpty) {
@@ -2439,6 +2710,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
           title: context.l10n.searchArtists,
           itemCount: artistItems.length,
           colorScheme: colorScheme,
+          showSortButton: !sortButtonShown,
           itemBuilder: (index, showDivider) => _CollectionItemWidget(
             key: ValueKey('artist-${artistItems[index].id}'),
             item: artistItems[index],
@@ -2447,22 +2719,25 @@ class _HomeTabState extends ConsumerState<HomeTab>
           ),
         ),
       );
+      sortButtonShown = true;
     }
 
-    if (searchAlbums != null && searchAlbums.isNotEmpty) {
+    if (sortedAlbums != null && sortedAlbums.isNotEmpty) {
       slivers.addAll(
         _buildVirtualizedResultSection(
           title: context.l10n.searchAlbums,
-          itemCount: searchAlbums.length,
+          itemCount: sortedAlbums.length,
           colorScheme: colorScheme,
+          showSortButton: !sortButtonShown,
           itemBuilder: (index, showDivider) => _SearchAlbumItemWidget(
-            key: ValueKey('search-album-${searchAlbums[index].id}'),
-            album: searchAlbums[index],
+            key: ValueKey('search-album-${sortedAlbums[index].id}'),
+            album: sortedAlbums[index],
             showDivider: showDivider,
-            onTap: () => _navigateToSearchAlbum(searchAlbums[index]),
+            onTap: () => _navigateToSearchAlbum(sortedAlbums[index]),
           ),
         ),
       );
+      sortButtonShown = true;
     }
 
     if (albumItems.isNotEmpty) {
@@ -2471,6 +2746,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
           title: context.l10n.searchAlbums,
           itemCount: albumItems.length,
           colorScheme: colorScheme,
+          showSortButton: !sortButtonShown,
           itemBuilder: (index, showDivider) => _CollectionItemWidget(
             key: ValueKey('album-${albumItems[index].id}'),
             item: albumItems[index],
@@ -2479,22 +2755,25 @@ class _HomeTabState extends ConsumerState<HomeTab>
           ),
         ),
       );
+      sortButtonShown = true;
     }
 
-    if (searchPlaylists != null && searchPlaylists.isNotEmpty) {
+    if (sortedPlaylists != null && sortedPlaylists.isNotEmpty) {
       slivers.addAll(
         _buildVirtualizedResultSection(
           title: context.l10n.searchPlaylists,
-          itemCount: searchPlaylists.length,
+          itemCount: sortedPlaylists.length,
           colorScheme: colorScheme,
+          showSortButton: !sortButtonShown,
           itemBuilder: (index, showDivider) => _SearchPlaylistItemWidget(
-            key: ValueKey('search-playlist-${searchPlaylists[index].id}'),
-            playlist: searchPlaylists[index],
+            key: ValueKey('search-playlist-${sortedPlaylists[index].id}'),
+            playlist: sortedPlaylists[index],
             showDivider: showDivider,
-            onTap: () => _navigateToSearchPlaylist(searchPlaylists[index]),
+            onTap: () => _navigateToSearchPlaylist(sortedPlaylists[index]),
           ),
         ),
       );
+      sortButtonShown = true;
     }
 
     if (playlistItems.isNotEmpty) {
@@ -2503,6 +2782,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
           title: context.l10n.searchPlaylists,
           itemCount: playlistItems.length,
           colorScheme: colorScheme,
+          showSortButton: !sortButtonShown,
           itemBuilder: (index, showDivider) => _CollectionItemWidget(
             key: ValueKey('playlist-${playlistItems[index].id}'),
             item: playlistItems[index],
@@ -2511,20 +2791,22 @@ class _HomeTabState extends ConsumerState<HomeTab>
           ),
         ),
       );
+      sortButtonShown = true;
     }
 
-    if (realTracks.isNotEmpty) {
+    if (sortedTracks.isNotEmpty) {
       slivers.addAll(
         _buildVirtualizedResultSection(
           title: context.l10n.searchSongs,
-          itemCount: realTracks.length,
+          itemCount: sortedTracks.length,
           colorScheme: colorScheme,
+          showSortButton: !sortButtonShown,
           itemBuilder: (index, showDivider) => _TrackItemWithStatus(
-            key: ValueKey(realTracks[index].id),
-            track: realTracks[index],
-            index: realTrackIndexes[index],
+            key: ValueKey(sortedTracks[index].id),
+            track: sortedTracks[index],
+            index: sortedTrackIndexes[index],
             showDivider: showDivider,
-            onDownload: () => _downloadTrack(realTrackIndexes[index]),
+            onDownload: () => _downloadTrack(sortedTrackIndexes[index]),
             searchExtensionId: searchExtensionId,
             showLocalLibraryIndicator: showLocalLibraryIndicator,
             thumbnailSizesByExtensionId: thumbnailSizesByExtensionId,
@@ -2542,6 +2824,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
     required int itemCount,
     required ColorScheme colorScheme,
     required Widget Function(int index, bool showDivider) itemBuilder,
+    bool showSortButton = false,
   }) {
     final sectionColor = Theme.of(context).brightness == Brightness.dark
         ? Color.alphaBlend(
@@ -2553,12 +2836,47 @@ class _HomeTabState extends ConsumerState<HomeTab>
     return [
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              if (showSortButton)
+                SizedBox(
+                  height: 32,
+                  child: TextButton.icon(
+                    onPressed: () => _showSortOptions(colorScheme),
+                    icon: Icon(
+                      Icons.swap_vert,
+                      size: 18,
+                      color: _searchSortOption != _SearchSortOption.defaultOrder
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                    label: Text(
+                      _searchSortOption != _SearchSortOption.defaultOrder
+                          ? _sortOptionLabel(_searchSortOption)
+                          : context.l10n.libraryFilterSort,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color:
+                            _searchSortOption != _SearchSortOption.defaultOrder
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -2566,19 +2884,22 @@ class _HomeTabState extends ConsumerState<HomeTab>
         delegate: SliverChildBuilderDelegate((context, index) {
           final isFirst = index == 0;
           final isLast = index == itemCount - 1;
-          return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: sectionColor,
-              borderRadius: BorderRadius.vertical(
-                top: isFirst ? const Radius.circular(20) : Radius.zero,
-                bottom: isLast ? const Radius.circular(20) : Radius.zero,
+          return StaggeredListItem(
+            index: index,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: sectionColor,
+                borderRadius: BorderRadius.vertical(
+                  top: isFirst ? const Radius.circular(20) : Radius.zero,
+                  bottom: isLast ? const Radius.circular(20) : Radius.zero,
+                ),
               ),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Material(
-              color: Colors.transparent,
-              child: itemBuilder(index, !isLast),
+              clipBehavior: Clip.antiAlias,
+              child: Material(
+                color: Colors.transparent,
+                child: itemBuilder(index, !isLast),
+              ),
             ),
           );
         }, childCount: itemCount),
@@ -2591,7 +2912,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
 
     Navigator.push(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (context) => ArtistScreen(
           artistId: artistId,
           artistName: artistName,
@@ -2617,7 +2938,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
     // Keep the full ID with prefix (e.g., "deezer:123") for AlbumScreen to detect source
     Navigator.push(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (context) => AlbumScreen(
           albumId: album.id,
           albumName: album.name,
@@ -2644,7 +2965,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
     // Keep the full ID with prefix (e.g., "deezer:123") for PlaylistScreen to detect source
     Navigator.push(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (context) => PlaylistScreen(
           playlistName: playlist.name,
           coverUrl: playlist.imageUrl,
@@ -2680,7 +3001,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
 
     Navigator.push(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (context) => ExtensionAlbumScreen(
           extensionId: extensionId,
           albumId: albumItem.id,
@@ -2716,7 +3037,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
 
     Navigator.push(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (context) => ExtensionPlaylistScreen(
           extensionId: extensionId,
           playlistId: playlistItem.id,
@@ -2751,7 +3072,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
 
     Navigator.push(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (context) => ExtensionArtistScreen(
           extensionId: extensionId,
           artistId: artistItem.id,
@@ -2772,6 +3093,13 @@ class _HomeTabState extends ConsumerState<HomeTab>
     }
 
     if (searchProvider != null && searchProvider.isNotEmpty) {
+      if (searchProvider == 'tidal') {
+        return 'Search with Tidal...';
+      }
+      if (searchProvider == 'qobuz') {
+        return 'Search with Qobuz...';
+      }
+
       final ext = extState.extensions
           .where((e) => e.id == searchProvider)
           .firstOrNull;
@@ -2806,16 +3134,6 @@ class _HomeTabState extends ConsumerState<HomeTab>
                   _triggerSearchWithFilter(null);
                 },
                 showCheckmark: false,
-                selectedColor: colorScheme.primaryContainer,
-                backgroundColor: colorScheme.surfaceContainerHighest,
-                labelStyle: TextStyle(
-                  color: selectedFilter == null
-                      ? colorScheme.onPrimaryContainer
-                      : colorScheme.onSurfaceVariant,
-                  fontWeight: selectedFilter == null
-                      ? FontWeight.w600
-                      : FontWeight.normal,
-                ),
               ),
             ),
             ...filters.map((filter) {
@@ -2830,24 +3148,8 @@ class _HomeTabState extends ConsumerState<HomeTab>
                     _triggerSearchWithFilter(filter.id);
                   },
                   showCheckmark: false,
-                  selectedColor: colorScheme.primaryContainer,
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  labelStyle: TextStyle(
-                    color: isSelected
-                        ? colorScheme.onPrimaryContainer
-                        : colorScheme.onSurfaceVariant,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                  ),
                   avatar: filter.icon != null
-                      ? Icon(
-                          _getFilterIcon(filter.icon!),
-                          size: 18,
-                          color: isSelected
-                              ? colorScheme.onPrimaryContainer
-                              : colorScheme.onSurfaceVariant,
-                        )
+                      ? Icon(_getFilterIcon(filter.icon!), size: 18)
                       : null,
                 ),
               );
@@ -2884,7 +3186,6 @@ class _HomeTabState extends ConsumerState<HomeTab>
     if (text.isEmpty || text.length < _minLiveSearchChars) return;
     if (text.startsWith('http') || text.startsWith('spotify:')) return;
 
-    // Reset last search query to force new search
     _lastSearchQuery = null;
     _performSearch(text, filterOverride: filter);
   }
@@ -2902,15 +3203,11 @@ class _HomeTabState extends ConsumerState<HomeTab>
         fillColor: colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(
-            color: colorScheme.outline.withValues(alpha: 0.5),
-          ),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(
-            color: colorScheme.outline.withValues(alpha: 0.5),
-          ),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
@@ -2958,6 +3255,9 @@ class _HomeTabState extends ConsumerState<HomeTab>
         ),
       ),
       onSubmitted: (_) => _onSearchSubmitted(),
+      onTapOutside: (_) {
+        FocusScope.of(context).unfocus();
+      },
     );
   }
 
@@ -3006,6 +3306,10 @@ class _SearchProviderDropdown extends ConsumerWidget {
           .firstOrNull;
     }
 
+    const builtInProviders = {'tidal', 'qobuz'};
+    final isBuiltInProvider =
+        currentProvider != null && builtInProviders.contains(currentProvider);
+
     IconData displayIcon = Icons.search;
     String? iconPath;
     if (currentExt != null) {
@@ -3013,10 +3317,8 @@ class _SearchProviderDropdown extends ConsumerWidget {
       if (currentExt.searchBehavior?.icon != null) {
         displayIcon = _getIconFromName(currentExt.searchBehavior!.icon!);
       }
-    }
-
-    if (searchProviders.isEmpty) {
-      return const Icon(Icons.search);
+    } else if (isBuiltInProvider) {
+      displayIcon = Icons.music_note;
     }
 
     return Padding(
@@ -3079,6 +3381,60 @@ class _SearchProviderDropdown extends ConsumerWidget {
                   ),
                 ),
                 if (currentProvider == null || currentProvider.isEmpty)
+                  Icon(Icons.check, size: 18, color: colorScheme.primary),
+              ],
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: 'tidal',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.music_note,
+                  size: 20,
+                  color: currentProvider == 'tidal'
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Tidal',
+                    style: TextStyle(
+                      fontWeight: currentProvider == 'tidal'
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                if (currentProvider == 'tidal')
+                  Icon(Icons.check, size: 18, color: colorScheme.primary),
+              ],
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: 'qobuz',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.music_note,
+                  size: 20,
+                  color: currentProvider == 'qobuz'
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Qobuz',
+                    style: TextStyle(
+                      fontWeight: currentProvider == 'qobuz'
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                if (currentProvider == 'qobuz')
                   Icon(Icons.check, size: 18, color: colorScheme.primary),
               ],
             ),
@@ -4005,7 +4361,6 @@ class _ExtensionAlbumScreenState extends ConsumerState<ExtensionAlbumScreen> {
           .map((t) => _parseTrack(t as Map<String, dynamic>))
           .toList();
 
-      // Extract artist info from album response
       final artistId = (result['artist_id'] ?? result['artistId'])?.toString();
       final artistName = result['artists'] as String?;
 
@@ -4063,7 +4418,10 @@ class _ExtensionAlbumScreenState extends ConsumerState<ExtensionAlbumScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.albumName)),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const AlbumTrackListSkeleton(
+          itemCount: 10,
+          showCoverHeader: true,
+        ),
       );
     }
 
@@ -4217,7 +4575,7 @@ class _ExtensionPlaylistScreenState
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.playlistName)),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const TrackListSkeleton(itemCount: 8, showCoverHeader: true),
       );
     }
 
@@ -4247,6 +4605,7 @@ class _ExtensionPlaylistScreenState
       playlistName: widget.playlistName,
       coverUrl: widget.coverUrl,
       tracks: _tracks!,
+      recommendedService: widget.extensionId,
     );
   }
 }
@@ -4346,7 +4705,7 @@ class _ExtensionArtistScreenState extends ConsumerState<ExtensionArtistScreen> {
       artists: (data['artists'] ?? '').toString(),
       releaseDate: (data['release_date'] ?? '').toString(),
       totalTracks: data['total_tracks'] as int? ?? 0,
-      coverUrl: data['cover_url']?.toString(),
+      coverUrl: normalizeCoverReference(data['cover_url']?.toString()),
       albumType: (data['album_type'] ?? 'album').toString(),
       providerId: (data['provider_id'] ?? widget.extensionId).toString(),
     );
@@ -4371,7 +4730,9 @@ class _ExtensionArtistScreenState extends ConsumerState<ExtensionArtistScreen> {
           (data['artist_id'] ?? data['artistId'])?.toString() ??
           widget.artistId,
       albumId: data['album_id']?.toString(),
-      coverUrl: (data['cover_url'] ?? data['images'])?.toString(),
+      coverUrl: normalizeCoverReference(
+        (data['cover_url'] ?? data['images'])?.toString(),
+      ),
       isrc: data['isrc']?.toString(),
       duration: (durationMs / 1000).round(),
       trackNumber: data['track_number'] as int?,
@@ -4386,7 +4747,7 @@ class _ExtensionArtistScreenState extends ConsumerState<ExtensionArtistScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.artistName)),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const ArtistScreenSkeleton(),
       );
     }
 

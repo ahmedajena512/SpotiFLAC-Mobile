@@ -20,6 +20,7 @@ class AppSettings {
   final String updateChannel;
   final bool hasSearchedBefore;
   final String folderOrganization;
+  final bool createPlaylistFolder;
   final bool useAlbumArtistForFolders;
   final bool usePrimaryArtistOnly; // Strip featured artists from folder name
   final bool filterContributingArtistsInAlbumArtist;
@@ -33,15 +34,14 @@ class AppSettings {
   final bool enableLogging;
   final bool useExtensionProviders;
   final String? searchProvider;
+  final String? homeFeedProvider;
   final bool separateSingles;
   final String albumFolderStructure;
   final bool showExtensionStore;
   final String locale;
   final String lyricsMode;
-  final int
-  youtubeOpusBitrate; // YouTube Opus bitrate (supported: 128/256/320 kbps)
-  final int
-  youtubeMp3Bitrate; // YouTube MP3 bitrate (supported: 128/256/320 kbps)
+  final String
+  tidalHighFormat; // Format for Tidal HIGH quality: 'mp3_320', 'opus_256', or 'opus_128'
   final bool
   useAllFilesAccess; // Android 13+ only: enable MANAGE_EXTERNAL_STORAGE
   final bool
@@ -96,6 +96,7 @@ class AppSettings {
     this.updateChannel = 'stable',
     this.hasSearchedBefore = false,
     this.folderOrganization = 'none',
+    this.createPlaylistFolder = false,
     this.useAlbumArtistForFolders = true,
     this.usePrimaryArtistOnly = false,
     this.filterContributingArtistsInAlbumArtist = false,
@@ -109,13 +110,13 @@ class AppSettings {
     this.enableLogging = false,
     this.useExtensionProviders = true,
     this.searchProvider,
+    this.homeFeedProvider,
     this.separateSingles = false,
     this.albumFolderStructure = 'artist_album',
     this.showExtensionStore = true,
     this.locale = 'system',
     this.lyricsMode = 'embed',
-    this.youtubeOpusBitrate = 256,
-    this.youtubeMp3Bitrate = 320,
+    this.tidalHighFormat = 'mp3_320',
     this.useAllFilesAccess = false,
     this.autoExportFailedDownloads = false,
     this.downloadNetworkMode = 'any',
@@ -159,6 +160,7 @@ class AppSettings {
     String? updateChannel,
     bool? hasSearchedBefore,
     String? folderOrganization,
+    bool? createPlaylistFolder,
     bool? useAlbumArtistForFolders,
     bool? usePrimaryArtistOnly,
     bool? filterContributingArtistsInAlbumArtist,
@@ -173,13 +175,14 @@ class AppSettings {
     bool? useExtensionProviders,
     String? searchProvider,
     bool clearSearchProvider = false,
+    String? homeFeedProvider,
+    bool clearHomeFeedProvider = false,
     bool? separateSingles,
     String? albumFolderStructure,
     bool? showExtensionStore,
     String? locale,
     String? lyricsMode,
-    int? youtubeOpusBitrate,
-    int? youtubeMp3Bitrate,
+    String? tidalHighFormat,
     bool? useAllFilesAccess,
     bool? autoExportFailedDownloads,
     String? downloadNetworkMode,
@@ -215,6 +218,7 @@ class AppSettings {
       updateChannel: updateChannel ?? this.updateChannel,
       hasSearchedBefore: hasSearchedBefore ?? this.hasSearchedBefore,
       folderOrganization: folderOrganization ?? this.folderOrganization,
+      createPlaylistFolder: createPlaylistFolder ?? this.createPlaylistFolder,
       useAlbumArtistForFolders:
           useAlbumArtistForFolders ?? this.useAlbumArtistForFolders,
       usePrimaryArtistOnly: usePrimaryArtistOnly ?? this.usePrimaryArtistOnly,
@@ -236,13 +240,15 @@ class AppSettings {
       searchProvider: clearSearchProvider
           ? null
           : (searchProvider ?? this.searchProvider),
+      homeFeedProvider: clearHomeFeedProvider
+          ? null
+          : (homeFeedProvider ?? this.homeFeedProvider),
       separateSingles: separateSingles ?? this.separateSingles,
       albumFolderStructure: albumFolderStructure ?? this.albumFolderStructure,
       showExtensionStore: showExtensionStore ?? this.showExtensionStore,
       locale: locale ?? this.locale,
       lyricsMode: lyricsMode ?? this.lyricsMode,
-      youtubeOpusBitrate: youtubeOpusBitrate ?? this.youtubeOpusBitrate,
-      youtubeMp3Bitrate: youtubeMp3Bitrate ?? this.youtubeMp3Bitrate,
+      tidalHighFormat: tidalHighFormat ?? this.tidalHighFormat,
       useAllFilesAccess: useAllFilesAccess ?? this.useAllFilesAccess,
       autoExportFailedDownloads:
           autoExportFailedDownloads ?? this.autoExportFailedDownloads,
@@ -255,8 +261,7 @@ class AppSettings {
       localLibraryBookmark: localLibraryBookmark ?? this.localLibraryBookmark,
       localLibraryShowDuplicates:
           localLibraryShowDuplicates ?? this.localLibraryShowDuplicates,
-      localLibraryAutoScan:
-          localLibraryAutoScan ?? this.localLibraryAutoScan,
+      localLibraryAutoScan: localLibraryAutoScan ?? this.localLibraryAutoScan,
       hasCompletedTutorial: hasCompletedTutorial ?? this.hasCompletedTutorial,
       lyricsProviders: lyricsProviders ?? this.lyricsProviders,
       lyricsIncludeTranslationNetease:

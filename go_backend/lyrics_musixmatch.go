@@ -3,6 +3,8 @@ package gobackend
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strings"
@@ -45,100 +47,105 @@ type musixmatchLyricsResponse struct {
 func NewMusixmatchClient() *MusixmatchClient {
 	return &MusixmatchClient{
 		httpClient: NewMetadataHTTPClient(15 * time.Second),
-		baseURL:    "http://158.180.60.95",
+		baseURL:    "https://lyrics.paxsenix.org/musixmatch/lyrics",
 	}
 }
 
-// searchAndGetLyrics searches for a song and retrieves its lyrics in one call.
-// The Musixmatch proxy returns both search result and lyrics in a single response.
-func (c *MusixmatchClient) searchAndGetLyrics(trackName, artistName string) (*musixmatchSearchResponse, error) {
+func (c *MusixmatchClient) fetchLyricsPayload(trackName, artistName string, durationSec float64, lyricsType, language string) (string, error) {
 	if strings.TrimSpace(trackName) == "" || strings.TrimSpace(artistName) == "" {
-		return nil, fmt.Errorf("empty track or artist name")
+		return "", fmt.Errorf("empty track or artist name")
 	}
 
-	encodedArtist := url.QueryEscape(artistName)
-	encodedTrack := url.QueryEscape(trackName)
-
-	fullURL := fmt.Sprintf("%s/v2/full?artist=%s&track=%s", c.baseURL, encodedArtist, encodedTrack)
+	params := url.Values{}
+	params.Set("t", trackName)
+	params.Set("a", artistName)
+	params.Set("type", lyricsType)
+	params.Set("format", "lrc")
+	if durationSec > 0 {
+		params.Set("d", fmt.Sprintf("%d", int(math.Round(durationSec))))
+	}
+	if strings.TrimSpace(language) != "" {
+		params.Set("l", strings.ToLower(strings.TrimSpace(language)))
+	}
+	fullURL := c.baseURL + "?" + params.Encode()
 
 	req, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return "", fmt.Errorf("failed to create request: %w", err)
 	}
+	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", getRandomUserAgent())
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("musixmatch search failed: %w", err)
+		return "", fmt.Errorf("musixmatch request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read musixmatch response: %w", err)
+	}
+
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("musixmatch proxy returned HTTP %d", resp.StatusCode)
+		trimmed := strings.TrimSpace(string(body))
+		if errMsg, isErrorPayload := detectLyricsErrorPayload(trimmed); isErrorPayload {
+			return "", fmt.Errorf("musixmatch proxy returned HTTP %d: %s", resp.StatusCode, errMsg)
+		}
+		return "", fmt.Errorf("musixmatch proxy returned HTTP %d", resp.StatusCode)
 	}
 
-	var result musixmatchSearchResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode musixmatch response: %w", err)
+	var lrcPayload string
+	if err := json.Unmarshal(body, &lrcPayload); err == nil {
+		lrcPayload = strings.TrimSpace(lrcPayload)
+		if lrcPayload == "" {
+			return "", fmt.Errorf("empty musixmatch lyrics payload")
+		}
+		return lrcPayload, nil
 	}
 
-	return &result, nil
+	trimmed := strings.TrimSpace(string(body))
+	if errMsg, isErrorPayload := detectLyricsErrorPayload(trimmed); isErrorPayload {
+		return "", fmt.Errorf("%s", errMsg)
+	}
+	if trimmed != "" && !strings.HasPrefix(trimmed, "{") {
+		return trimmed, nil
+	}
+	return "", fmt.Errorf("failed to decode musixmatch response")
 }
 
 // FetchLyricsInLanguage retrieves lyrics from Musixmatch for a specific language code.
-func (c *MusixmatchClient) FetchLyricsInLanguage(songID int64, language string) (*LyricsResponse, error) {
+func (c *MusixmatchClient) FetchLyricsInLanguage(trackName, artistName string, durationSec float64, language string) (*LyricsResponse, error) {
 	lang := strings.ToLower(strings.TrimSpace(language))
-	if songID <= 0 || lang == "" {
-		return nil, fmt.Errorf("invalid song id or language")
+	if lang == "" {
+		return nil, fmt.Errorf("invalid language")
 	}
 
-	fullURL := fmt.Sprintf("%s/v2/full?id=%d&lang=%s", c.baseURL, songID, url.QueryEscape(lang))
-
-	req, err := http.NewRequest("GET", fullURL, nil)
+	lrcText, err := c.fetchLyricsPayload(trackName, artistName, durationSec, "translate", lang)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("User-Agent", getRandomUserAgent())
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("musixmatch language fetch failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("musixmatch language endpoint returned HTTP %d", resp.StatusCode)
+		return nil, err
 	}
 
-	var result musixmatchSearchResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode musixmatch language response: %w", err)
+	lines := parseSyncedLyrics(lrcText)
+	if len(lines) > 0 {
+		return &LyricsResponse{
+			Lines:       lines,
+			SyncType:    "LINE_SYNCED",
+			PlainLyrics: plainLyricsFromTimedLines(lines),
+			Provider:    "Musixmatch",
+			Source:      fmt.Sprintf("Musixmatch (%s)", lang),
+		}, nil
 	}
 
-	if result.SyncedLyrics != nil && strings.TrimSpace(result.SyncedLyrics.Lyrics) != "" {
-		lines := parseSyncedLyrics(result.SyncedLyrics.Lyrics)
-		if len(lines) > 0 {
-			return &LyricsResponse{
-				Lines:    lines,
-				SyncType: "LINE_SYNCED",
-				Provider: "Musixmatch",
-				Source:   fmt.Sprintf("Musixmatch (%s)", lang),
-			}, nil
-		}
-	}
-
-	if result.UnsyncedLyrics != nil && strings.TrimSpace(result.UnsyncedLyrics.Lyrics) != "" {
-		lines := plainTextLyricsLines(result.UnsyncedLyrics.Lyrics)
-
-		if len(lines) > 0 {
-			return &LyricsResponse{
-				Lines:       lines,
-				SyncType:    "UNSYNCED",
-				PlainLyrics: result.UnsyncedLyrics.Lyrics,
-				Provider:    "Musixmatch",
-				Source:      fmt.Sprintf("Musixmatch (%s)", lang),
-			}, nil
-		}
+	plainLines := plainTextLyricsLines(lrcText)
+	if len(plainLines) > 0 {
+		return &LyricsResponse{
+			Lines:       plainLines,
+			SyncType:    "UNSYNCED",
+			PlainLyrics: lrcText,
+			Provider:    "Musixmatch",
+			Source:      fmt.Sprintf("Musixmatch (%s)", lang),
+		}, nil
 	}
 
 	return nil, fmt.Errorf("no lyrics found on musixmatch for language %s", lang)
@@ -146,43 +153,39 @@ func (c *MusixmatchClient) FetchLyricsInLanguage(songID int64, language string) 
 
 // FetchLyrics searches Musixmatch and returns parsed LyricsResponse.
 func (c *MusixmatchClient) FetchLyrics(trackName, artistName string, durationSec float64, preferredLanguage string) (*LyricsResponse, error) {
-	result, err := c.searchAndGetLyrics(trackName, artistName)
-	if err != nil {
-		return nil, err
-	}
-
-	if preferred := strings.ToLower(strings.TrimSpace(preferredLanguage)); preferred != "" && result.ID > 0 {
-		localized, localizedErr := c.FetchLyricsInLanguage(result.ID, preferred)
+	if preferred := strings.ToLower(strings.TrimSpace(preferredLanguage)); preferred != "" {
+		localized, localizedErr := c.FetchLyricsInLanguage(trackName, artistName, durationSec, preferred)
 		if localizedErr == nil {
 			return localized, nil
 		}
 		GoLog("[Musixmatch] Language override '%s' failed: %v\n", preferred, localizedErr)
 	}
 
-	if result.SyncedLyrics != nil && strings.TrimSpace(result.SyncedLyrics.Lyrics) != "" {
-		lines := parseSyncedLyrics(result.SyncedLyrics.Lyrics)
-		if len(lines) > 0 {
-			return &LyricsResponse{
-				Lines:    lines,
-				SyncType: "LINE_SYNCED",
-				Provider: "Musixmatch",
-				Source:   "Musixmatch",
-			}, nil
-		}
+	lrcText, err := c.fetchLyricsPayload(trackName, artistName, durationSec, "word", "")
+	if err != nil {
+		return nil, err
 	}
 
-	if result.UnsyncedLyrics != nil && strings.TrimSpace(result.UnsyncedLyrics.Lyrics) != "" {
-		lines := plainTextLyricsLines(result.UnsyncedLyrics.Lyrics)
+	lines := parseSyncedLyrics(lrcText)
+	if len(lines) > 0 {
+		return &LyricsResponse{
+			Lines:       lines,
+			SyncType:    "LINE_SYNCED",
+			PlainLyrics: plainLyricsFromTimedLines(lines),
+			Provider:    "Musixmatch",
+			Source:      "Musixmatch",
+		}, nil
+	}
 
-		if len(lines) > 0 {
-			return &LyricsResponse{
-				Lines:       lines,
-				SyncType:    "UNSYNCED",
-				PlainLyrics: result.UnsyncedLyrics.Lyrics,
-				Provider:    "Musixmatch",
-				Source:      "Musixmatch",
-			}, nil
-		}
+	plainLines := plainTextLyricsLines(lrcText)
+	if len(plainLines) > 0 {
+		return &LyricsResponse{
+			Lines:       plainLines,
+			SyncType:    "UNSYNCED",
+			PlainLyrics: lrcText,
+			Provider:    "Musixmatch",
+			Source:      "Musixmatch",
+		}, nil
 	}
 
 	return nil, fmt.Errorf("no lyrics found on musixmatch")

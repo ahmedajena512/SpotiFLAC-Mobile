@@ -7,6 +7,8 @@ import 'package:spotiflac_android/l10n/l10n.dart';
 import 'package:spotiflac_android/models/track.dart';
 import 'package:spotiflac_android/providers/download_queue_provider.dart';
 import 'package:spotiflac_android/providers/library_collections_provider.dart';
+import 'package:spotiflac_android/utils/file_access.dart';
+import 'package:spotiflac_android/utils/string_utils.dart';
 import 'package:spotiflac_android/providers/settings_provider.dart';
 import 'package:spotiflac_android/providers/local_library_provider.dart';
 import 'package:spotiflac_android/providers/playback_provider.dart';
@@ -18,12 +20,14 @@ import 'package:spotiflac_android/widgets/download_service_picker.dart';
 import 'package:spotiflac_android/widgets/playlist_picker_sheet.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
 import 'package:spotiflac_android/services/download_request_payload.dart';
+import 'package:spotiflac_android/widgets/animation_utils.dart';
 
 class PlaylistScreen extends ConsumerStatefulWidget {
   final String playlistName;
   final String? coverUrl;
   final List<Track> tracks;
   final String? playlistId;
+  final String? recommendedService;
 
   const PlaylistScreen({
     super.key,
@@ -31,6 +35,7 @@ class PlaylistScreen extends ConsumerStatefulWidget {
     this.coverUrl,
     required this.tracks,
     this.playlistId,
+    this.recommendedService,
   });
 
   @override
@@ -49,6 +54,31 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
   List<Track> get _tracks => _fetchedTracks ?? widget.tracks;
   String get _playlistName => _resolvedPlaylistName ?? widget.playlistName;
   String? get _coverUrl => _resolvedCoverUrl ?? widget.coverUrl;
+
+  String? _recommendedDownloadService() {
+    final explicit = widget.recommendedService;
+    if (explicit != null && explicit.isNotEmpty) {
+      return explicit;
+    }
+
+    final playlistId = widget.playlistId;
+    if (playlistId != null) {
+      if (playlistId.startsWith('tidal:')) return 'tidal';
+      if (playlistId.startsWith('qobuz:')) return 'qobuz';
+      if (playlistId.startsWith('deezer:')) return 'deezer';
+    }
+
+    final source = _tracks.firstOrNull?.source;
+    if (source != null && source.isNotEmpty) {
+      return source;
+    }
+
+    final trackId = _tracks.firstOrNull?.id ?? '';
+    if (trackId.startsWith('tidal:')) return 'tidal';
+    if (trackId.startsWith('qobuz:')) return 'qobuz';
+    if (trackId.startsWith('deezer:')) return 'deezer';
+    return null;
+  }
 
   @override
   void initState() {
@@ -132,7 +162,9 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
       albumArtist: data['album_artist']?.toString(),
       artistId: (data['artist_id'] ?? data['artistId'])?.toString(),
       albumId: data['album_id']?.toString(),
-      coverUrl: (data['cover_url'] ?? data['images'])?.toString(),
+      coverUrl: normalizeCoverReference(
+        (data['cover_url'] ?? data['images'])?.toString(),
+      ),
       isrc: data['isrc']?.toString(),
       duration: (durationMs / 1000).round(),
       trackNumber: data['track_number'] as int?,
@@ -422,8 +454,8 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     if (_isLoading) {
       return const SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Center(child: CircularProgressIndicator()),
+          padding: EdgeInsets.all(16),
+          child: TrackListSkeleton(itemCount: 8),
         ),
       );
     }
@@ -473,12 +505,15 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
         final track = _tracks[index];
         return KeyedSubtree(
           key: ValueKey(track.id),
-          child: _PlaylistTrackItem(
-            track: track,
-            allTracks: _tracks,
-            trackIndex: index,
-            onDownload: () => _downloadTrack(context, track),
-            isSpotifyStyle: false,
+          child: StaggeredListItem(
+            index: index,
+            child: _PlaylistTrackItem(
+              track: track,
+              allTracks: _tracks,
+              trackIndex: index,
+              onDownload: () => _downloadTrack(context, track),
+              isSpotifyStyle: false,
+            ),
           ),
         );
       }, childCount: _tracks.length),
@@ -494,6 +529,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
         trackName: track.name,
         artistName: track.artistName,
         coverUrl: track.coverUrl,
+        recommendedService: _recommendedDownloadService(),
         onSelect: (quality, service) {
           ref
               .read(downloadQueueProvider.notifier)
@@ -600,13 +636,18 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
       tooltip: context.l10n.tooltipAddToPlaylist,
       onPressed: _tracks.isEmpty
           ? null
-          : () => showAddTracksToPlaylistSheet(context, ref, _tracks, playlistNamePrefill: widget.playlistName),
+          : () => showAddTracksToPlaylistSheet(
+              context,
+              ref,
+              _tracks,
+              playlistNamePrefill: widget.playlistName,
+            ),
     );
   }
 
   void _confirmDownloadAll(BuildContext context) {
     if (_tracks.isEmpty) return;
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (dialogContext) {
         final colorScheme = Theme.of(dialogContext).colorScheme;
@@ -676,20 +717,23 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
   void _downloadTracks(BuildContext context, List<Track> tracks) {
     if (tracks.isEmpty) return;
 
-    // Skip already-downloaded tracks
     final historyState = ref.read(downloadHistoryProvider);
     final settings = ref.read(settingsProvider);
-    final localLibState = (settings.localLibraryEnabled && settings.localLibraryShowDuplicates)
+    final localLibState =
+        (settings.localLibraryEnabled && settings.localLibraryShowDuplicates)
         ? ref.read(localLibraryProvider)
         : null;
     final tracksToQueue = <Track>[];
     int skippedCount = 0;
 
     for (final track in tracks) {
-      final isInHistory = historyState.isDownloaded(track.id) ||
+      final isInHistory =
+          historyState.isDownloaded(track.id) ||
           (track.isrc != null && historyState.getByIsrc(track.isrc!) != null) ||
-          historyState.findByTrackAndArtist(track.name, track.artistName) != null;
-      final isInLocal = localLibState?.existsInLibrary(
+          historyState.findByTrackAndArtist(track.name, track.artistName) !=
+              null;
+      final isInLocal =
+          localLibState?.existsInLibrary(
             isrc: track.isrc,
             trackName: track.name,
             artistName: track.artistName,
@@ -719,6 +763,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
         context,
         trackName: '${tracksToQueue.length} tracks',
         artistName: _playlistName,
+        recommendedService: _recommendedDownloadService(),
         onSelect: (quality, service) {
           ref
               .read(downloadQueueProvider.notifier)
@@ -747,9 +792,9 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     final message = skipped > 0
         ? context.l10n.discographySkippedDownloaded(added, skipped)
         : context.l10n.snackbarAddedTracksToQueue(added);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -859,7 +904,6 @@ class _PlaylistTrackItemState extends ConsumerState<_PlaylistTrackItem> {
       }),
     );
 
-    // Check local library for duplicate detection
     final showLocalLibraryIndicator = ref.watch(
       settingsProvider.select(
         (s) => s.localLibraryEnabled && s.localLibraryShowDuplicates,

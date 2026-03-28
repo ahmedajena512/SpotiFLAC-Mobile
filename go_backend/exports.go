@@ -48,7 +48,6 @@ func CheckAvailability(spotifyID, isrc string) (string, error) {
 }
 
 // SetSongLinkNetworkOptions is kept for backward compatibility.
-// It now applies global network compatibility options for all backend API requests.
 func SetSongLinkNetworkOptions(allowHTTP, insecureTLS bool) {
 	SetNetworkCompatibilityOptions(allowHTTP, insecureTLS)
 }
@@ -128,6 +127,7 @@ type DownloadResult struct {
 	TrackNumber   int
 	DiscNumber    int
 	ISRC          string
+	CoverURL      string
 	Genre         string
 	Label         string
 	Copyright     string
@@ -214,6 +214,11 @@ func buildDownloadSuccessResponse(
 		copyright = req.Copyright
 	}
 
+	coverURL := strings.TrimSpace(result.CoverURL)
+	if coverURL == "" {
+		coverURL = strings.TrimSpace(req.CoverURL)
+	}
+
 	return DownloadResponse{
 		Success:          true,
 		Message:          message,
@@ -230,7 +235,7 @@ func buildDownloadSuccessResponse(
 		TrackNumber:      trackNumber,
 		DiscNumber:       discNumber,
 		ISRC:             isrc,
-		CoverURL:         req.CoverURL,
+		CoverURL:         coverURL,
 		Genre:            genre,
 		Label:            label,
 		Copyright:        copyright,
@@ -378,6 +383,7 @@ func DownloadTrack(requestJSON string) (string, error) {
 				TrackNumber: qobuzResult.TrackNumber,
 				DiscNumber:  qobuzResult.DiscNumber,
 				ISRC:        qobuzResult.ISRC,
+				CoverURL:    qobuzResult.CoverURL,
 				LyricsLRC:   qobuzResult.LyricsLRC,
 			}
 		}
@@ -400,24 +406,6 @@ func DownloadTrack(requestJSON string) (string, error) {
 			}
 		}
 		err = deezerErr
-	case "youtube":
-		youtubeResult, youtubeErr := downloadFromYouTube(req)
-		if youtubeErr == nil {
-			result = DownloadResult{
-				FilePath:    youtubeResult.FilePath,
-				BitDepth:    0,
-				SampleRate:  0,
-				Title:       youtubeResult.Title,
-				Artist:      youtubeResult.Artist,
-				Album:       youtubeResult.Album,
-				ReleaseDate: youtubeResult.ReleaseDate,
-				TrackNumber: youtubeResult.TrackNumber,
-				DiscNumber:  youtubeResult.DiscNumber,
-				ISRC:        youtubeResult.ISRC,
-				LyricsLRC:   youtubeResult.LyricsLRC,
-			}
-		}
-		err = youtubeErr
 	default:
 		return errorResponse("Unknown service: " + req.Service)
 	}
@@ -469,7 +457,7 @@ func DownloadByStrategy(requestJSON string) (string, error) {
 	serviceNormalized := strings.ToLower(serviceRaw)
 
 	normalizedReq := req
-	if serviceNormalized == "youtube" || isBuiltInProvider(serviceNormalized) {
+	if isBuiltInProvider(serviceNormalized) {
 		normalizedReq.Service = serviceNormalized
 	}
 
@@ -478,10 +466,6 @@ func DownloadByStrategy(requestJSON string) (string, error) {
 		return errorResponse("Invalid request: " + err.Error())
 	}
 	normalizedJSON := string(normalizedBytes)
-
-	if serviceNormalized == "youtube" {
-		return DownloadFromYouTube(normalizedJSON)
-	}
 
 	if req.UseExtensions {
 		// Respect strict mode when auto fallback is disabled:
@@ -586,6 +570,7 @@ func DownloadWithFallback(requestJSON string) (string, error) {
 					TrackNumber: qobuzResult.TrackNumber,
 					DiscNumber:  qobuzResult.DiscNumber,
 					ISRC:        qobuzResult.ISRC,
+					CoverURL:    qobuzResult.CoverURL,
 					LyricsLRC:   qobuzResult.LyricsLRC,
 				}
 			} else if !errors.Is(qobuzErr, ErrDownloadCancelled) {
@@ -883,32 +868,80 @@ func ReadFileMetadata(filePath string) (string, error) {
 	if isFlac {
 		metadata, err := ReadMetadata(filePath)
 		if err != nil {
-			return "", fmt.Errorf("failed to read metadata: %w", err)
-		}
-		result["title"] = metadata.Title
-		result["artist"] = metadata.Artist
-		result["album"] = metadata.Album
-		result["album_artist"] = metadata.AlbumArtist
-		result["date"] = metadata.Date
-		result["track_number"] = metadata.TrackNumber
-		result["disc_number"] = metadata.DiscNumber
-		result["isrc"] = metadata.ISRC
-		result["lyrics"] = metadata.Lyrics
-		result["genre"] = metadata.Genre
-		result["label"] = metadata.Label
-		result["copyright"] = metadata.Copyright
-		result["composer"] = metadata.Composer
-		result["comment"] = metadata.Comment
+			// File may have wrong extension (e.g. opus saved as .flac).
+			// Try Ogg/Opus parser as fallback before giving up.
+			GoLog("[ReadFileMetadata] FLAC parse failed for %s, trying Ogg fallback: %v\n", filePath, err)
+			oggMeta, oggErr := ReadOggVorbisComments(filePath)
+			if oggErr == nil && oggMeta != nil {
+				result["title"] = oggMeta.Title
+				result["artist"] = oggMeta.Artist
+				result["album"] = oggMeta.Album
+				result["album_artist"] = oggMeta.AlbumArtist
+				result["date"] = oggMeta.Date
+				if oggMeta.Date == "" {
+					result["date"] = oggMeta.Year
+				}
+				result["track_number"] = oggMeta.TrackNumber
+				result["disc_number"] = oggMeta.DiscNumber
+				result["isrc"] = oggMeta.ISRC
+				result["lyrics"] = oggMeta.Lyrics
+				result["genre"] = oggMeta.Genre
+				result["composer"] = oggMeta.Composer
+				result["comment"] = oggMeta.Comment
+				quality, qualityErr := GetOggQuality(filePath)
+				if qualityErr == nil {
+					result["sample_rate"] = quality.SampleRate
+					result["duration"] = quality.Duration
+				}
+			} else {
+				return "", fmt.Errorf("failed to read metadata: %w", err)
+			}
+		} else {
+			result["title"] = metadata.Title
+			result["artist"] = metadata.Artist
+			result["album"] = metadata.Album
+			result["album_artist"] = metadata.AlbumArtist
+			result["date"] = metadata.Date
+			result["track_number"] = metadata.TrackNumber
+			result["disc_number"] = metadata.DiscNumber
+			result["isrc"] = metadata.ISRC
+			result["lyrics"] = metadata.Lyrics
+			result["genre"] = metadata.Genre
+			result["label"] = metadata.Label
+			result["copyright"] = metadata.Copyright
+			result["composer"] = metadata.Composer
+			result["comment"] = metadata.Comment
 
-		quality, qualityErr := GetAudioQuality(filePath)
-		if qualityErr == nil {
-			result["bit_depth"] = quality.BitDepth
-			result["sample_rate"] = quality.SampleRate
-			if quality.SampleRate > 0 && quality.TotalSamples > 0 {
-				result["duration"] = int(quality.TotalSamples / int64(quality.SampleRate))
+			quality, qualityErr := GetAudioQuality(filePath)
+			if qualityErr == nil {
+				result["bit_depth"] = quality.BitDepth
+				result["sample_rate"] = quality.SampleRate
+				if quality.SampleRate > 0 && quality.TotalSamples > 0 {
+					result["duration"] = int(quality.TotalSamples / int64(quality.SampleRate))
+				}
 			}
 		}
 	} else if isM4A {
+		meta, err := ReadM4ATags(filePath)
+		if err == nil && meta != nil {
+			result["title"] = meta.Title
+			result["artist"] = meta.Artist
+			result["album"] = meta.Album
+			result["album_artist"] = meta.AlbumArtist
+			result["date"] = meta.Date
+			if meta.Date == "" {
+				result["date"] = meta.Year
+			}
+			result["track_number"] = meta.TrackNumber
+			result["disc_number"] = meta.DiscNumber
+			result["isrc"] = meta.ISRC
+			result["lyrics"] = meta.Lyrics
+			result["genre"] = meta.Genre
+			result["label"] = meta.Label
+			result["copyright"] = meta.Copyright
+			result["composer"] = meta.Composer
+			result["comment"] = meta.Comment
+		}
 		quality, qualityErr := GetM4AQuality(filePath)
 		if qualityErr == nil {
 			result["bit_depth"] = quality.BitDepth
@@ -1052,7 +1085,6 @@ func EditFileMetadata(filePath, metadataJSON string) (string, error) {
 		return string(jsonBytes), nil
 	}
 
-	// MP3/Opus: return metadata for Dart-side FFmpeg embedding
 	resp := map[string]any{
 		"success": true,
 		"method":  "ffmpeg",
@@ -1285,6 +1317,36 @@ func SearchDeezerAll(query string, trackLimit, artistLimit int, filter string) (
 
 	client := GetDeezerClient()
 	results, err := client.SearchAll(ctx, query, trackLimit, artistLimit, filter)
+	if err != nil {
+		return "", err
+	}
+
+	jsonBytes, err := json.Marshal(results)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonBytes), nil
+}
+
+func SearchTidalAll(query string, trackLimit, artistLimit int, filter string) (string, error) {
+	downloader := NewTidalDownloader()
+	results, err := downloader.SearchAll(query, trackLimit, artistLimit, filter)
+	if err != nil {
+		return "", err
+	}
+
+	jsonBytes, err := json.Marshal(results)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonBytes), nil
+}
+
+func SearchQobuzAll(query string, trackLimit, artistLimit int, filter string) (string, error) {
+	downloader := NewQobuzDownloader()
+	results, err := downloader.SearchAll(query, trackLimit, artistLimit, filter)
 	if err != nil {
 		return "", err
 	}
@@ -1782,62 +1844,6 @@ func errorResponse(msg string) (string, error) {
 	return string(jsonBytes), nil
 }
 
-func DownloadFromYouTube(requestJSON string) (string, error) {
-	var req DownloadRequest
-	if err := json.Unmarshal([]byte(requestJSON), &req); err != nil {
-		return errorResponse("Invalid request: " + err.Error())
-	}
-	applySongLinkRegionFromRequest(&req)
-	defer closeOwnedOutputFD(req.OutputFD)
-
-	req.TrackName = strings.TrimSpace(req.TrackName)
-	req.ArtistName = strings.TrimSpace(req.ArtistName)
-	req.AlbumName = strings.TrimSpace(req.AlbumName)
-	req.AlbumArtist = strings.TrimSpace(req.AlbumArtist)
-	req.OutputDir = strings.TrimSpace(req.OutputDir)
-	req.OutputPath = strings.TrimSpace(req.OutputPath)
-	req.OutputExt = strings.TrimSpace(req.OutputExt)
-
-	if req.OutputPath == "" && req.OutputFD <= 0 && req.OutputDir != "" {
-		AddAllowedDownloadDir(req.OutputDir)
-	}
-
-	youtubeResult, err := downloadFromYouTube(req)
-	if err != nil {
-		return errorResponse(err.Error())
-	}
-
-	resp := DownloadResponse{
-		Success:     true,
-		Message:     "Downloaded from YouTube",
-		FilePath:    youtubeResult.FilePath,
-		Service:     "youtube",
-		Title:       youtubeResult.Title,
-		Artist:      youtubeResult.Artist,
-		Album:       youtubeResult.Album,
-		ReleaseDate: youtubeResult.ReleaseDate,
-		TrackNumber: youtubeResult.TrackNumber,
-		DiscNumber:  youtubeResult.DiscNumber,
-		ISRC:        youtubeResult.ISRC,
-		LyricsLRC:   youtubeResult.LyricsLRC,
-		CoverURL:    req.CoverURL,
-		Genre:       req.Genre,
-		Label:       req.Label,
-		Copyright:   req.Copyright,
-	}
-
-	jsonBytes, _ := json.Marshal(resp)
-	return string(jsonBytes), nil
-}
-
-func IsYouTubeURLExport(urlStr string) bool {
-	return IsYouTubeURL(urlStr)
-}
-
-func ExtractYouTubeVideoIDExport(urlStr string) (string, error) {
-	return ExtractYouTubeVideoID(urlStr)
-}
-
 func DownloadCoverToFile(coverURL string, outputPath string, maxQuality bool) error {
 	if coverURL == "" {
 		return fmt.Errorf("no cover URL provided")
@@ -2070,7 +2076,6 @@ func ReEnrichFile(requestJSON string) (string, error) {
 		}
 	}
 
-	// Log metadata summary before embedding
 	GoLog("[ReEnrich] Metadata to embed: title=%s, artist=%s, album=%s, albumArtist=%s\n",
 		req.TrackName, req.ArtistName, req.AlbumName, req.AlbumArtist)
 	GoLog("[ReEnrich] track=%d, disc=%d, date=%s, isrc=%s, genre=%s, label=%s\n",
@@ -2130,8 +2135,15 @@ func ReEnrichFile(requestJSON string) (string, error) {
 		}
 	}()
 
-	// Fetch lyrics
+	// Preserve existing lyrics when online enrichment does not return a replacement.
 	var lyricsLRC string
+	existingLyrics, existingLyricsErr := ExtractLyrics(req.FilePath)
+	if existingLyricsErr == nil && strings.TrimSpace(existingLyrics) != "" {
+		lyricsLRC = existingLyrics
+		GoLog("[ReEnrich] Preserving existing embedded/sidecar lyrics\n")
+	}
+
+	// Fetch lyrics
 	if req.EmbedLyrics {
 		client := NewLyricsClient()
 		durationSec := float64(req.DurationMs) / 1000.0
@@ -2146,7 +2158,6 @@ func ReEnrichFile(requestJSON string) (string, error) {
 		}
 	}
 
-	// Build enriched metadata response for Dart (includes online search results)
 	enrichedMeta := map[string]interface{}{
 		"track_name":   req.TrackName,
 		"artist_name":  req.ArtistName,
@@ -2212,7 +2223,6 @@ func ReEnrichFile(requestJSON string) (string, error) {
 		return string(jsonBytes), nil
 	}
 
-	// MP3/Opus: return metadata map for Dart to use FFmpeg
 	// Don't cleanup cover temp — Dart needs it for FFmpeg embed
 	cleanupCover = false
 	result := map[string]interface{}{
@@ -2293,12 +2303,6 @@ func LoadExtensionFromPath(filePath string) (string, error) {
 		return "", err
 	}
 
-	settingsStore := GetExtensionSettingsStore()
-	settings := settingsStore.GetAll(ext.ID)
-	if len(settings) > 0 {
-		manager.InitializeExtension(ext.ID, settings)
-	}
-
 	result := map[string]interface{}{
 		"id":           ext.ID,
 		"name":         ext.Manifest.Name,
@@ -2330,12 +2334,6 @@ func UpgradeExtensionFromPath(filePath string) (string, error) {
 	ext, err := manager.UpgradeExtension(filePath)
 	if err != nil {
 		return "", err
-	}
-
-	settingsStore := GetExtensionSettingsStore()
-	settings := settingsStore.GetAll(ext.ID)
-	if len(settings) > 0 {
-		manager.InitializeExtension(ext.ID, settings)
 	}
 
 	result := map[string]interface{}{
@@ -3283,17 +3281,17 @@ func GetPostProcessingProvidersJSON() (string, error) {
 }
 
 func InitExtensionStoreJSON(cacheDir string) error {
-	InitExtensionStore(cacheDir)
+	initExtensionStore(cacheDir)
 	return nil
 }
 
 func SetStoreRegistryURLJSON(registryURL string) error {
-	store := GetExtensionStore()
+	store := getExtensionStore()
 	if store == nil {
 		return fmt.Errorf("extension store not initialized")
 	}
 
-	resolved, err := ResolveRegistryURL(registryURL)
+	resolved, err := resolveRegistryURL(registryURL)
 	if err != nil {
 		return err
 	}
@@ -3302,41 +3300,37 @@ func SetStoreRegistryURLJSON(registryURL string) error {
 		return err
 	}
 
-	store.SetRegistryURL(resolved)
+	store.setRegistryURL(resolved)
 	return nil
 }
 
 func ClearStoreRegistryURLJSON() error {
-	store := GetExtensionStore()
+	store := getExtensionStore()
 	if store == nil {
 		return fmt.Errorf("extension store not initialized")
 	}
 
-	store.SetRegistryURL("")
-	store.ClearCache()
+	store.setRegistryURL("")
+	store.clearCache()
 	return nil
 }
 
 func GetStoreRegistryURLJSON() (string, error) {
-	store := GetExtensionStore()
+	store := getExtensionStore()
 	if store == nil {
 		return "", fmt.Errorf("extension store not initialized")
 	}
 
-	return store.GetRegistryURL(), nil
+	return store.getRegistryURL(), nil
 }
 
 func GetStoreExtensionsJSON(forceRefresh bool) (string, error) {
-	store := GetExtensionStore()
+	store := getExtensionStore()
 	if store == nil {
 		return "", fmt.Errorf("extension store not initialized")
 	}
 
-	if forceRefresh {
-		store.FetchRegistry(true)
-	}
-
-	extensions, err := store.GetExtensionsWithStatus()
+	extensions, err := store.getExtensionsWithStatus(forceRefresh)
 	if err != nil {
 		return "", err
 	}
@@ -3350,12 +3344,12 @@ func GetStoreExtensionsJSON(forceRefresh bool) (string, error) {
 }
 
 func SearchStoreExtensionsJSON(query, category string) (string, error) {
-	store := GetExtensionStore()
+	store := getExtensionStore()
 	if store == nil {
 		return "", fmt.Errorf("extension store not initialized")
 	}
 
-	extensions, err := store.SearchExtensions(query, category)
+	extensions, err := store.searchExtensions(query, category)
 	if err != nil {
 		return "", err
 	}
@@ -3369,12 +3363,12 @@ func SearchStoreExtensionsJSON(query, category string) (string, error) {
 }
 
 func GetStoreCategoriesJSON() (string, error) {
-	store := GetExtensionStore()
+	store := getExtensionStore()
 	if store == nil {
 		return "", fmt.Errorf("extension store not initialized")
 	}
 
-	categories := store.GetCategories()
+	categories := store.getCategories()
 	jsonBytes, err := json.Marshal(categories)
 	if err != nil {
 		return "", err
@@ -3393,7 +3387,7 @@ func buildStoreExtensionDestPath(destDir, extensionID string) (string, error) {
 }
 
 func DownloadStoreExtensionJSON(extensionID, destDir string) (string, error) {
-	store := GetExtensionStore()
+	store := getExtensionStore()
 	if store == nil {
 		return "", fmt.Errorf("extension store not initialized")
 	}
@@ -3402,7 +3396,7 @@ func DownloadStoreExtensionJSON(extensionID, destDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = store.DownloadExtension(extensionID, destPath)
+	err = store.downloadExtension(extensionID, destPath)
 	if err != nil {
 		return "", err
 	}
@@ -3411,12 +3405,12 @@ func DownloadStoreExtensionJSON(extensionID, destDir string) (string, error) {
 }
 
 func ClearStoreCacheJSON() error {
-	store := GetExtensionStore()
+	store := getExtensionStore()
 	if store == nil {
 		return fmt.Errorf("extension store not initialized")
 	}
 
-	store.ClearCache()
+	store.clearCache()
 	return nil
 }
 
@@ -3430,12 +3424,14 @@ func callExtensionFunctionJSON(extensionID, functionName string, timeout time.Du
 	if !ext.Enabled {
 		return "", fmt.Errorf("extension '%s' is disabled", extensionID)
 	}
+	vm, err := ext.lockReadyVM()
+	if err != nil {
+		return "", err
+	}
+	defer ext.VMMu.Unlock()
 
 	// Goja runtime is not thread-safe; guard direct extension.*() calls with VMMu
 	// to avoid races with other provider calls (e.g. getAlbum/getPlaylist).
-	ext.VMMu.Lock()
-	defer ext.VMMu.Unlock()
-
 	script := fmt.Sprintf(`
 		(function() {
 			if (typeof extension !== 'undefined' && typeof extension.%s === 'function') {
@@ -3445,7 +3441,7 @@ func callExtensionFunctionJSON(extensionID, functionName string, timeout time.Du
 		})()
 	`, functionName, functionName)
 
-	result, err := RunWithTimeoutAndRecover(ext.VM, script, timeout)
+	result, err := RunWithTimeoutAndRecover(vm, script, timeout)
 	if err != nil {
 		return "", fmt.Errorf("%s failed: %w", functionName, err)
 	}

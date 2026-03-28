@@ -122,7 +122,7 @@ class UserPlaylistCollection {
       createdAt: createdAt,
       updatedAt: updatedAt,
       tracks: tracksRaw
-          .whereType<Map>()
+          .whereType<Map<Object?, Object?>>()
           .map(
             (e) => CollectionTrackEntry.fromJson(Map<String, dynamic>.from(e)),
           )
@@ -237,19 +237,19 @@ class LibraryCollectionsState {
 
     return LibraryCollectionsState(
       wishlist: wishlistRaw
-          .whereType<Map>()
+          .whereType<Map<Object?, Object?>>()
           .map(
             (e) => CollectionTrackEntry.fromJson(Map<String, dynamic>.from(e)),
           )
           .toList(growable: false),
       loved: lovedRaw
-          .whereType<Map>()
+          .whereType<Map<Object?, Object?>>()
           .map(
             (e) => CollectionTrackEntry.fromJson(Map<String, dynamic>.from(e)),
           )
           .toList(growable: false),
       playlists: playlistsRaw
-          .whereType<Map>()
+          .whereType<Map<Object?, Object?>>()
           .map(
             (e) =>
                 UserPlaylistCollection.fromJson(Map<String, dynamic>.from(e)),
@@ -670,7 +670,6 @@ class LibraryCollectionsNotifier extends Notifier<LibraryCollectionsState> {
     final destPath = p.join(coversDir.path, '$playlistId$ext');
     if (playlist.coverImagePath == destPath) return;
 
-    // Copy image to persistent location
     await File(sourceFilePath).copy(destPath);
 
     final now = DateTime.now();
@@ -690,7 +689,6 @@ class LibraryCollectionsNotifier extends Notifier<LibraryCollectionsState> {
     final playlist = state.playlistById(playlistId);
     if (playlist == null || playlist.coverImagePath == null) return;
 
-    // Delete the file if it exists
     final path = playlist.coverImagePath;
     if (path != null) {
       final file = File(path);

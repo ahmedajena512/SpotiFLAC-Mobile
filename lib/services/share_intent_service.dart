@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:spotiflac_android/utils/logger.dart';
 
@@ -57,9 +58,14 @@ class ShareIntentService {
     if (_initialized) return;
     _initialized = true;
 
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      _log.i('Share intent is not supported on this platform');
+      return;
+    }
+
     _mediaSubscription = ReceiveSharingIntent.instance.getMediaStream().listen(
       _handleSharedMedia,
-      onError: (err) => _log.e('Error: $err'),
+      onError: (Object err) => _log.e('Error: $err'),
     );
 
     final initialMedia = await ReceiveSharingIntent.instance.getInitialMedia();
@@ -94,13 +100,11 @@ class ShareIntentService {
   String? _extractMusicUrl(String text) {
     if (text.isEmpty) return null;
 
-    // Try Spotify URI first
     final uriMatch = _spotifyUriPattern.firstMatch(text);
     if (uriMatch != null) {
       return uriMatch.group(0);
     }
 
-    // Try all URL patterns
     final patterns = [
       _spotifyUrlPattern,
       _deezerUrlPattern,

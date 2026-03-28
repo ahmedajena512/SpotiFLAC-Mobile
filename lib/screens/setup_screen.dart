@@ -91,6 +91,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           _notificationPermissionGranted = notificationStatus.isGranted;
         });
       }
+    } else {
+      setState(() {
+        _storagePermissionGranted = true;
+        _notificationPermissionGranted = true;
+      });
     }
   }
 
@@ -119,7 +124,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             final shouldOpen = await _showAndroid11StorageDialog();
             if (shouldOpen == true) {
               await Permission.manageExternalStorage.request();
-              await Future.delayed(const Duration(milliseconds: 500));
+              await Future<void>.delayed(const Duration(milliseconds: 500));
               manageStatus = await Permission.manageExternalStorage.status;
             }
           }
@@ -139,6 +144,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             SnackBar(content: Text(context.l10n.setupPermissionDeniedMessage)),
           );
         }
+      } else {
+        setState(() => _storagePermissionGranted = true);
       }
     } catch (e) {
       debugPrint('Permission error: $e');
@@ -196,7 +203,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Future<void> _showPermissionDeniedDialog(String permissionType) async {
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(context.l10n.setupPermissionRequired(permissionType)),
@@ -225,7 +232,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     try {
       if (Platform.isIOS) {
         await _showIOSDirectoryOptions();
-      } else {
+      } else if (Platform.isAndroid) {
         final result = await PlatformBridge.pickSafTree();
         if (result != null) {
           final treeUri = result['tree_uri'] as String? ?? '';
@@ -279,7 +286,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
   Future<void> _showIOSDirectoryOptions() async {
     final colorScheme = Theme.of(context).colorScheme;
-    await showModalBottomSheet(
+    await showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
       backgroundColor: colorScheme.surfaceContainerHigh,
@@ -434,14 +441,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
   void _nextPage() {
     bool canProceed = false;
-    // Step 0 is Welcome, always can proceed
     if (_currentStep == 0) {
       canProceed = true;
     } else {
-      // Logic for other steps (offset by 1 because of welcome step)
-      // Step 1: Storage
-      // Step 2: Notification (if android 13+) OR Directory
-      // etc.
       canProceed = _isStepCompleted(_currentStep);
     }
 
@@ -463,9 +465,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   bool _isStepCompleted(int step) {
-    if (step == 0) return true; // Welcome
+    if (step == 0) return true;
 
-    // Adjust step index for logic because we added Welcome at 0
     final logicStep = step - 1;
 
     if (_androidSdkVersion >= 33) {

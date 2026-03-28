@@ -234,8 +234,6 @@ func ScanLibraryFolder(folderPath string) (string, error) {
 			continue
 		}
 
-		// Skip audio files that are referenced by a .cue sheet
-		// (they will be represented by the cue sheet's track entries instead)
 		if cueReferencedAudioFiles[filePath] {
 			GoLog("[LibraryScan] Skipping %s (referenced by .cue sheet)\n", filepath.Base(filePath))
 			continue
@@ -293,7 +291,7 @@ func scanAudioFileWithKnownModTimeAndDisplayName(filePath, displayNameHint, scan
 	libraryCoverCacheMu.RLock()
 	coverCacheDir := libraryCoverCacheDir
 	libraryCoverCacheMu.RUnlock()
-	if coverCacheDir != "" && ext != ".m4a" {
+	if coverCacheDir != "" {
 		coverPath, err := SaveCoverToCacheWithHint(filePath, displayNameHint, coverCacheDir)
 		if err == nil && coverPath != "" {
 			result.CoverPath = coverPath
@@ -373,13 +371,30 @@ func scanFLACFile(filePath string, result *LibraryScanResult) (*LibraryScanResul
 }
 
 func scanM4AFile(filePath string, result *LibraryScanResult) (*LibraryScanResult, error) {
+	metadata, err := ReadM4ATags(filePath)
+	if err == nil && metadata != nil {
+		result.TrackName = metadata.Title
+		result.ArtistName = metadata.Artist
+		result.AlbumName = metadata.Album
+		result.AlbumArtist = metadata.AlbumArtist
+		result.ISRC = metadata.ISRC
+		result.TrackNumber = metadata.TrackNumber
+		result.DiscNumber = metadata.DiscNumber
+		result.ReleaseDate = metadata.Date
+		if result.ReleaseDate == "" {
+			result.ReleaseDate = metadata.Year
+		}
+		result.Genre = metadata.Genre
+	}
+
 	quality, err := GetM4AQuality(filePath)
 	if err == nil {
 		result.BitDepth = quality.BitDepth
 		result.SampleRate = quality.SampleRate
 	}
 
-	return scanFromFilename(filePath, "", result)
+	applyDefaultLibraryMetadata(filePath, "", result)
+	return result, nil
 }
 
 func scanMP3File(filePath string, result *LibraryScanResult) (*LibraryScanResult, error) {
@@ -540,9 +555,6 @@ func ReadAudioMetadataWithDisplayName(filePath, displayNameHint string) (string,
 	return string(jsonBytes), nil
 }
 
-// ScanLibraryFolderIncremental performs an incremental scan of the library folder
-// existingFilesJSON is a JSON object mapping filePath -> modTime (unix millis)
-// Only files that are new or have changed modification time will be scanned
 func loadExistingFilesSnapshot(snapshotPath string) (map[string]int64, error) {
 	existingFiles := make(map[string]int64)
 	if snapshotPath == "" {
@@ -620,7 +632,6 @@ func scanLibraryFolderIncrementalWithExistingFiles(folderPath string, existingFi
 	libraryScanProgress.TotalFiles = totalFiles
 	libraryScanProgressMu.Unlock()
 
-	// Find files to scan (new or modified)
 	var filesToScan []libraryAudioFileInfo
 	skippedCount := 0
 	existingCueTrackModTimes := make(map[string]int64)
@@ -636,10 +647,8 @@ func scanLibraryFolderIncrementalWithExistingFiles(folderPath string, existingFi
 	for _, f := range currentFiles {
 		existingModTime, exists := existingFiles[f.path]
 		if !exists {
-			// For .cue files, also check if any virtual path entries exist
 			if strings.ToLower(filepath.Ext(f.path)) == ".cue" {
 				if cueTrackModTime, hasCueTracks := existingCueTrackModTimes[f.path]; hasCueTracks {
-					// CUE file exists in DB via virtual paths; check if modTime changed
 					if f.modTime == cueTrackModTime {
 						skippedCount++
 					} else {
@@ -658,14 +667,11 @@ func scanLibraryFolderIncrementalWithExistingFiles(folderPath string, existingFi
 
 	var deletedPaths []string
 	for existingPath := range existingFiles {
-		// For CUE virtual paths (e.g. "/path/album.cue#track01"),
-		// check if the base .cue file still exists on disk
 		if idx := strings.LastIndex(existingPath, "#track"); idx > 0 {
 			baseCuePath := existingPath[:idx]
 			if currentPathSet[baseCuePath] {
-				continue // Base .cue file still exists, not deleted
+				continue
 			}
-			// Base CUE file is gone, mark virtual path as deleted
 			deletedPaths = append(deletedPaths, existingPath)
 		} else if !currentPathSet[existingPath] {
 			deletedPaths = append(deletedPaths, existingPath)
@@ -696,7 +702,6 @@ func scanLibraryFolderIncrementalWithExistingFiles(folderPath string, existingFi
 	scanTime := time.Now().UTC().Format(time.RFC3339)
 	errorCount := 0
 
-	// Track audio files referenced by .cue sheets to avoid duplicates (incremental)
 	cueReferencedAudioFilesInc := make(map[string]bool)
 	parsedCueFiles := make(map[string]scannedCueFileInfo)
 	for _, f := range filesToScan {
@@ -731,7 +736,6 @@ func scanLibraryFolderIncrementalWithExistingFiles(folderPath string, existingFi
 
 		ext := strings.ToLower(filepath.Ext(f.path))
 
-		// Handle .cue files: produce multiple track results
 		if ext == ".cue" {
 			var cueResults []LibraryScanResult
 			cueInfo, ok := parsedCueFiles[f.path]
@@ -756,7 +760,6 @@ func scanLibraryFolderIncrementalWithExistingFiles(folderPath string, existingFi
 			continue
 		}
 
-		// Skip audio files referenced by .cue sheets
 		if cueReferencedAudioFilesInc[f.path] {
 			continue
 		}

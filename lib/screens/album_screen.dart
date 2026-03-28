@@ -10,8 +10,11 @@ import 'package:spotiflac_android/providers/recent_access_provider.dart';
 import 'package:spotiflac_android/providers/local_library_provider.dart';
 import 'package:spotiflac_android/providers/playback_provider.dart';
 import 'package:spotiflac_android/services/platform_bridge.dart';
+import 'package:spotiflac_android/utils/file_access.dart';
+import 'package:spotiflac_android/utils/string_utils.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
+import 'package:spotiflac_android/widgets/animation_utils.dart';
 import 'package:spotiflac_android/providers/library_collections_provider.dart';
 import 'package:spotiflac_android/widgets/playlist_picker_sheet.dart';
 import 'package:spotiflac_android/utils/clickable_metadata.dart';
@@ -98,7 +101,10 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
           .recordAlbumAccess(
             id: widget.albumId,
             name: widget.albumName,
-            artistName: widget.artistName ?? widget.tracks?.firstOrNull?.albumArtist ?? widget.tracks?.firstOrNull?.artistName,
+            artistName:
+                widget.artistName ??
+                widget.tracks?.firstOrNull?.albumArtist ??
+                widget.tracks?.firstOrNull?.artistName,
             imageUrl: widget.coverUrl,
             providerId: providerId,
           );
@@ -230,7 +236,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
       artistId:
           (data['artist_id'] ?? data['artistId'])?.toString() ?? _artistId,
       albumId: data['album_id']?.toString() ?? widget.albumId,
-      coverUrl: data['images'] as String?,
+      coverUrl: normalizeCoverReference(data['images']?.toString()),
       isrc: data['isrc'] as String?,
       duration: ((data['duration_ms'] as int? ?? 0) / 1000).round(),
       trackNumber: data['track_number'] as int?,
@@ -239,6 +245,16 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
       albumType: data['album_type'] as String?,
       totalTracks: data['total_tracks'] as int?,
     );
+  }
+
+  String? _recommendedDownloadService() {
+    if (widget.extensionId != null && widget.extensionId!.isNotEmpty) {
+      return widget.extensionId;
+    }
+    if (widget.albumId.startsWith('tidal:')) return 'tidal';
+    if (widget.albumId.startsWith('qobuz:')) return 'qobuz';
+    if (widget.albumId.startsWith('deezer:')) return 'deezer';
+    return null;
   }
 
   @override
@@ -297,8 +313,8 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
           if (_isLoading)
             const SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()),
+                padding: EdgeInsets.all(16),
+                child: AlbumTrackListSkeleton(itemCount: 10),
               ),
             ),
           if (_error != null)
@@ -324,7 +340,8 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
   ) {
     final expandedHeight = _calculateExpandedHeight(context);
     final tracks = _tracks ?? [];
-    final artistName = widget.artistName ??
+    final artistName =
+        widget.artistName ??
         (tracks.isNotEmpty
             ? (tracks.first.albumArtist ?? tracks.first.artistName)
             : null);
@@ -573,11 +590,15 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
         final track = tracks[index];
         return KeyedSubtree(
           key: ValueKey(track.id),
-          child: _AlbumTrackItem(
-            track: track,
-            allTracks: tracks,
-            trackIndex: index,
-            onDownload: () => _downloadTrack(context, track),
+          child: StaggeredListItem(
+            index: index,
+            child: _AlbumTrackItem(
+              track: track,
+              allTracks: tracks,
+              trackIndex: index,
+              onDownload: () => _downloadTrack(context, track),
+            ),
+          ),
           ),
         );
       }, childCount: tracks.length),
@@ -592,6 +613,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
         trackName: track.name,
         artistName: track.artistName,
         coverUrl: track.coverUrl,
+        recommendedService: _recommendedDownloadService(),
         onSelect: (quality, service) {
           ref
               .read(downloadQueueProvider.notifier)
@@ -617,20 +639,23 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
     final tracks = _tracks;
     if (tracks == null || tracks.isEmpty) return;
 
-    // Skip already-downloaded tracks
     final historyState = ref.read(downloadHistoryProvider);
     final settings = ref.read(settingsProvider);
-    final localLibState = (settings.localLibraryEnabled && settings.localLibraryShowDuplicates)
+    final localLibState =
+        (settings.localLibraryEnabled && settings.localLibraryShowDuplicates)
         ? ref.read(localLibraryProvider)
         : null;
     final tracksToQueue = <Track>[];
     int skippedCount = 0;
 
     for (final track in tracks) {
-      final isInHistory = historyState.isDownloaded(track.id) ||
+      final isInHistory =
+          historyState.isDownloaded(track.id) ||
           (track.isrc != null && historyState.getByIsrc(track.isrc!) != null) ||
-          historyState.findByTrackAndArtist(track.name, track.artistName) != null;
-      final isInLocal = localLibState?.existsInLibrary(
+          historyState.findByTrackAndArtist(track.name, track.artistName) !=
+              null;
+      final isInLocal =
+          localLibState?.existsInLibrary(
             isrc: track.isrc,
             trackName: track.name,
             artistName: track.artistName,
@@ -660,10 +685,15 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
         context,
         trackName: '${tracksToQueue.length} tracks',
         artistName: widget.albumName,
+        recommendedService: _recommendedDownloadService(),
         onSelect: (quality, service) {
           ref
               .read(downloadQueueProvider.notifier)
-              .addMultipleToQueue(tracksToQueue, service, qualityOverride: quality);
+              .addMultipleToQueue(
+                tracksToQueue,
+                service,
+                qualityOverride: quality,
+              );
           _showQueuedSnackbar(context, tracksToQueue.length, skippedCount);
         },
       );
@@ -679,9 +709,9 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
     final message = skipped > 0
         ? context.l10n.discographySkippedDownloaded(added, skipped)
         : context.l10n.snackbarAddedTracksToQueue(added);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildLoveAllButton() {

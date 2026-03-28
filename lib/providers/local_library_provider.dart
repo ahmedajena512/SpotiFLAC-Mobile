@@ -9,11 +9,11 @@ import 'package:spotiflac_android/services/library_database.dart';
 import 'package:spotiflac_android/services/notification_service.dart';
 import 'package:spotiflac_android/services/platform_bridge.dart';
 import 'package:spotiflac_android/utils/logger.dart';
+import 'package:spotiflac_android/utils/local_library_scan_prefs.dart';
 import 'package:spotiflac_android/utils/path_match_keys.dart';
 
 final _log = AppLogger('LocalLibrary');
 
-const _lastScannedAtKey = 'local_library_last_scanned_at';
 const _excludedDownloadedCountKey = 'local_library_excluded_downloaded_count';
 final _prefs = SharedPreferences.getInstance();
 
@@ -165,10 +165,7 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
       var excludedDownloadedCount = 0;
       try {
         final prefs = await prefsFuture;
-        final lastScannedAtStr = prefs.getString(_lastScannedAtKey);
-        if (lastScannedAtStr != null && lastScannedAtStr.isNotEmpty) {
-          lastScannedAt = DateTime.tryParse(lastScannedAtStr);
-        }
+        lastScannedAt = readLocalLibraryLastScannedAt(prefs);
         excludedDownloadedCount =
             prefs.getInt(_excludedDownloadedCountKey) ?? 0;
       } catch (e) {
@@ -255,8 +252,6 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
 
     _startProgressPolling();
 
-    // On iOS, start accessing the security-scoped bookmark so the Go backend
-    // can read files outside the app sandbox.
     String? resolvedPath;
     bool didStartSecurityAccess = false;
     if (Platform.isIOS && iosBookmark != null && iosBookmark.isNotEmpty) {
@@ -278,9 +273,6 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
     try {
       final isSaf = effectiveFolderPath.startsWith('content://');
 
-      // Get all file paths from download history to exclude them.
-      // Merge DB + in-memory state to avoid race when a fresh download has not
-      // been flushed to SQLite yet.
       final downloadedPaths = await _historyDb.getAllFilePaths();
       final inMemoryHistoryPaths = ref
           .read(downloadHistoryProvider)
@@ -301,7 +293,6 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
       );
 
       if (forceFullScan) {
-        // Full scan path - ignores existing data
         final results = isSaf
             ? await PlatformBridge.scanSafTree(effectiveFolderPath)
             : await PlatformBridge.scanLibraryFolder(effectiveFolderPath);
@@ -327,16 +318,13 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
           _log.i('Skipped $skippedDownloads files already in download history');
         }
 
-        // Full scan should replace library index entirely.
-        await _db.clearAll();
-        if (items.isNotEmpty) {
-          await _db.upsertBatch(items.map((e) => e.toJson()).toList());
-        }
+        await _db.replaceAll(items.map((e) => e.toJson()).toList());
+        final persistedItems = [...items]..sort(_compareLibraryItems);
 
         final now = DateTime.now();
         try {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(_lastScannedAtKey, now.toIso8601String());
+          await writeLocalLibraryLastScannedAt(prefs, now);
           await prefs.setInt(_excludedDownloadedCountKey, skippedDownloads);
           _log.d('Saved lastScannedAt: $now');
         } catch (e) {
@@ -344,7 +332,7 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
         }
 
         state = state.copyWith(
-          items: items,
+          items: persistedItems,
           isScanning: false,
           scanProgress: 100,
           lastScannedAt: now,
@@ -353,16 +341,15 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
         );
 
         _log.i(
-          'Full scan complete: ${items.length} tracks found, '
+          'Full scan complete: ${persistedItems.length} tracks found, '
           '$skippedDownloads already in downloads',
         );
         await _showScanCompleteNotification(
-          totalTracks: items.length,
+          totalTracks: persistedItems.length,
           excludedDownloadedCount: skippedDownloads,
           errorCount: state.scanErrorCount,
         );
       } else {
-        // Incremental scan path - only scans new/modified files
         final existingFiles = await _db.getFileModTimes();
         _log.i(
           'Incremental scan: ${existingFiles.length} existing files in database',
@@ -421,7 +408,6 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
           return;
         }
 
-        // SAF returns 'files' and 'removedUris', non-SAF returns 'scanned' and 'deletedPaths'
         final scannedList =
             (result['files'] as List<dynamic>?) ??
             (result['scanned'] as List<dynamic>?) ??
@@ -442,8 +428,10 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
           '$skippedCount skipped, ${deletedPaths.length} deleted, $totalFiles total',
         );
 
+        final existingJson = await _db.getAll();
         final currentByPath = <String, LocalLibraryItem>{
-          for (final item in state.items) item.filePath: item,
+          for (final item in existingJson.map(LocalLibraryItem.fromJson))
+            item.filePath: item,
         };
         final existingDownloadedPaths = <String>[];
         currentByPath.removeWhere((path, _) {
@@ -460,7 +448,6 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
           );
         }
 
-        // Upsert new/modified items (excluding downloaded files)
         final updatedItems = <LocalLibraryItem>[];
         int skippedDownloads = existingDownloadedPaths.length;
         if (scannedList.isNotEmpty) {
@@ -500,7 +487,7 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
         final now = DateTime.now();
         try {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(_lastScannedAtKey, now.toIso8601String());
+          await writeLocalLibraryLastScannedAt(prefs, now);
           await prefs.setInt(_excludedDownloadedCountKey, skippedDownloads);
           _log.d('Saved lastScannedAt: $now');
         } catch (e) {
@@ -818,7 +805,7 @@ class LocalLibraryNotifier extends Notifier<LocalLibraryState> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_lastScannedAtKey);
+      await clearLocalLibraryLastScannedAt(prefs);
       await prefs.remove(_excludedDownloadedCountKey);
     } catch (e) {
       _log.w('Failed to clear lastScannedAt: $e');

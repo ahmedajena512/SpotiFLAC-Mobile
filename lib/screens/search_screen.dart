@@ -10,6 +10,7 @@ import 'package:spotiflac_android/providers/playback_provider.dart';
 import 'package:spotiflac_android/providers/settings_provider.dart';
 import 'package:spotiflac_android/providers/local_library_provider.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
+import 'package:spotiflac_android/widgets/animation_utils.dart';
 import 'package:spotiflac_android/utils/clickable_metadata.dart';
 import 'package:spotiflac_android/services/download_request_payload.dart';
 import 'package:spotiflac_android/services/platform_bridge.dart';
@@ -181,17 +182,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: Text(error, style: TextStyle(color: colorScheme.error)),
             ),
           Expanded(
-            child: tracks.isEmpty
-                ? _buildEmptyState(colorScheme)
-                : ListView.builder(
-                    itemCount: tracks.length,
-                    itemBuilder: (context, index) => _buildTrackTile(
-                      tracks[index],
-                      tracks,
-                      index,
-                      colorScheme,
+            child: AnimatedStateSwitcher(
+              child: isLoading && tracks.isEmpty
+                  ? const TrackListSkeleton(key: ValueKey('loading'))
+                  : tracks.isEmpty
+                  ? _buildEmptyState(colorScheme)
+                  : ListView.builder(
+                      key: const ValueKey('results'),
+                      itemCount: tracks.length,
+                      itemBuilder: (context, index) => StaggeredListItem(
+                        index: index,
+                        child: _buildTrackTile(tracks[index], tracks, index, colorScheme),
+                      ),
                     ),
-                  ),
+            ),
           ),
         ],
       ),
@@ -234,34 +238,33 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             historyNotifier.getByIsrc(isrc) != null) ||
         localState.findByTrackAndArtist(track.name, track.artistName) != null;
 
+    final coverWidget = track.coverUrl != null
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: CachedNetworkImage(
+              imageUrl: track.coverUrl!,
+              width: 48,
+              height: 48,
+              fit: BoxFit.cover,
+              memCacheWidth: 144,
+              memCacheHeight: 144,
+              cacheManager: CoverCacheManager.instance,
+            ),
+          )
+        : Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.music_note, color: colorScheme.onSurfaceVariant),
+          );
+
     return ListTile(
       leading: Stack(
         children: [
-          track.coverUrl != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: CachedNetworkImage(
-                    imageUrl: track.coverUrl!,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    memCacheWidth: 144,
-                    memCacheHeight: 144,
-                    cacheManager: CoverCacheManager.instance,
-                  ),
-                )
-              : Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.music_note,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
+          coverWidget,
           if (hasLocal)
             Positioned(
               bottom: 0,

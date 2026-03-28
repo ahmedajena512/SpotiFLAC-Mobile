@@ -4,7 +4,6 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:spotiflac_android/providers/theme_provider.dart';
 import 'package:spotiflac_android/theme/app_theme.dart';
 
-/// Wrapper widget that provides dynamic color support from device wallpaper
 class DynamicColorWrapper extends ConsumerWidget {
   final Widget Function(ThemeData light, ThemeData dark, ThemeMode mode)
   builder;
@@ -38,7 +37,6 @@ class DynamicColorWrapper extends ConsumerWidget {
           );
         }
 
-        // Apply AMOLED mode if enabled (pure black background)
         if (themeSettings.useAmoled) {
           darkScheme = _applyAmoledColors(darkScheme);
         }

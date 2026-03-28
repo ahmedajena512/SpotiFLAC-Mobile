@@ -3,6 +3,7 @@ package gobackend
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -82,7 +83,6 @@ func SetLyricsProviderOrder(providers []string) {
 		return
 	}
 
-	// Validate provider names
 	validNames := map[string]bool{
 		LyricsProviderSpotifyAPI: true,
 		LyricsProviderLRCLIB:     true,
@@ -104,7 +104,6 @@ func SetLyricsProviderOrder(providers []string) {
 	GoLog("[Lyrics] Provider order set to: %v\n", valid)
 }
 
-// GetLyricsProviderOrder returns the current lyrics provider order.
 func GetLyricsProviderOrder() []string {
 	lyricsProvidersMu.RLock()
 	defer lyricsProvidersMu.RUnlock()
@@ -118,15 +117,14 @@ func GetLyricsProviderOrder() []string {
 	return result
 }
 
-// GetAvailableLyricsProviders returns metadata about all available providers.
 func GetAvailableLyricsProviders() []map[string]interface{} {
 	return []map[string]interface{}{
-		{"id": LyricsProviderSpotifyAPI, "name": "Spotify Lyrics API", "has_proxy_dependency": true, "description": "Spotify-sourced synced lyrics via community API"},
+		{"id": LyricsProviderSpotifyAPI, "name": "Spotify Lyrics API", "has_proxy_dependency": true, "description": "Spotify-sourced lyrics via Paxsenix"},
 		{"id": LyricsProviderLRCLIB, "name": "LRCLIB", "has_proxy_dependency": false, "description": "Open-source synced lyrics database"},
-		{"id": LyricsProviderNetease, "name": "Netease", "has_proxy_dependency": false, "description": "NetEase Cloud Music (good for Asian songs)"},
-		{"id": LyricsProviderMusixmatch, "name": "Musixmatch", "has_proxy_dependency": true, "description": "Largest lyrics database (multi-language)"},
-		{"id": LyricsProviderAppleMusic, "name": "Apple Music", "has_proxy_dependency": true, "description": "Word-by-word synced lyrics"},
-		{"id": LyricsProviderQQMusic, "name": "QQ Music", "has_proxy_dependency": true, "description": "QQ Music lyrics (good for Chinese songs)"},
+		{"id": LyricsProviderNetease, "name": "Netease", "has_proxy_dependency": true, "description": "NetEase Cloud Music lyrics via Paxsenix"},
+		{"id": LyricsProviderMusixmatch, "name": "Musixmatch", "has_proxy_dependency": true, "description": "Musixmatch lyrics via Paxsenix"},
+		{"id": LyricsProviderAppleMusic, "name": "Apple Music", "has_proxy_dependency": true, "description": "Apple Music synced lyrics via Paxsenix"},
+		{"id": LyricsProviderQQMusic, "name": "QQ Music", "has_proxy_dependency": true, "description": "QQ Music lyrics via Paxsenix"},
 	}
 }
 
@@ -139,7 +137,6 @@ func normalizeLyricsFetchOptions(opts LyricsFetchOptions) LyricsFetchOptions {
 	return opts
 }
 
-// SetLyricsFetchOptions sets provider-specific lyric fetch behavior.
 func SetLyricsFetchOptions(opts LyricsFetchOptions) {
 	normalized := normalizeLyricsFetchOptions(opts)
 
@@ -155,7 +152,6 @@ func SetLyricsFetchOptions(opts LyricsFetchOptions) {
 	)
 }
 
-// GetLyricsFetchOptions returns current provider-specific lyric fetch behavior.
 func GetLyricsFetchOptions() LyricsFetchOptions {
 	lyricsFetchOptionsMu.RLock()
 	defer lyricsFetchOptionsMu.RUnlock()
@@ -431,6 +427,99 @@ func parseSpotifyRetryAfter(retryAfter string, now time.Time) time.Time {
 	return now.Add(10 * time.Minute)
 }
 
+func buildSpotifyLyricsResponse(lines []LyricsLine, syncType, plainLyrics string) (*LyricsResponse, error) {
+	if len(lines) == 0 {
+		return nil, fmt.Errorf("Spotify Lyrics API returned empty lines")
+	}
+	if syncType == "" {
+		if len(lines) > 0 && lines[0].StartTimeMs > 0 {
+			syncType = "LINE_SYNCED"
+		} else {
+			syncType = "UNSYNCED"
+		}
+	}
+	return &LyricsResponse{
+		Lines:        lines,
+		SyncType:     syncType,
+		Instrumental: false,
+		PlainLyrics:  plainLyrics,
+		Provider:     "Spotify Lyrics API",
+		Source:       "Spotify Lyrics API",
+	}, nil
+}
+
+func plainLyricsFromTimedLines(lines []LyricsLine) string {
+	parts := make([]string, 0, len(lines))
+	for _, line := range lines {
+		words := strings.TrimSpace(line.Words)
+		if words == "" {
+			continue
+		}
+		parts = append(parts, words)
+	}
+	return strings.Join(parts, "\n")
+}
+
+func parseSpotifyLyricsResponseBody(body []byte) (*LyricsResponse, error) {
+	var lrcPayload string
+	if err := json.Unmarshal(body, &lrcPayload); err == nil {
+		trimmed := strings.TrimSpace(lrcPayload)
+		if trimmed == "" {
+			return nil, fmt.Errorf("Spotify Lyrics API returned empty payload")
+		}
+
+		lines := parseSyncedLyrics(trimmed)
+		if len(lines) > 0 {
+			return buildSpotifyLyricsResponse(lines, "LINE_SYNCED", plainLyricsFromTimedLines(lines))
+		}
+
+		plainLines := plainTextLyricsLines(trimmed)
+		return buildSpotifyLyricsResponse(plainLines, "UNSYNCED", trimmed)
+	}
+
+	var apiResp SpotifyLyricsAPIResponse
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, fmt.Errorf("failed to parse Spotify Lyrics API response: %w", err)
+	}
+
+	if apiResp.Error {
+		msg := strings.TrimSpace(apiResp.Message)
+		if msg == "" {
+			msg = "Spotify Lyrics API returned error"
+		}
+		return nil, fmt.Errorf("%s", msg)
+	}
+
+	lines := make([]LyricsLine, 0, len(apiResp.Lines))
+	for _, line := range apiResp.Lines {
+		words := strings.TrimSpace(line.Words)
+		if words == "" {
+			continue
+		}
+		startMs := parseSpotifyLyricsTimeTagToMs(line.TimeTag)
+		lines = append(lines, LyricsLine{
+			StartTimeMs: startMs,
+			Words:       words,
+			EndTimeMs:   0,
+		})
+	}
+
+	for i := 0; i < len(lines)-1; i++ {
+		nextStart := lines[i+1].StartTimeMs
+		if nextStart > lines[i].StartTimeMs {
+			lines[i].EndTimeMs = nextStart
+		}
+	}
+	if len(lines) > 0 {
+		last := len(lines) - 1
+		if lines[last].EndTimeMs == 0 {
+			lines[last].EndTimeMs = lines[last].StartTimeMs + 5000
+		}
+	}
+
+	return buildSpotifyLyricsResponse(lines, apiResp.SyncType, plainLyricsFromTimedLines(lines))
+}
+
 func (c *LyricsClient) FetchLyricsFromSpotifyAPI(spotifyID string) (*LyricsResponse, error) {
 	now := time.Now()
 	if limitedUntil := getSpotifyLyricsRateLimitUntil(); limitedUntil.After(now) {
@@ -449,7 +538,7 @@ func (c *LyricsClient) FetchLyricsFromSpotifyAPI(spotifyID string) (*LyricsRespo
 		spotifyID = parsed.ID
 	}
 
-	apiURL := fmt.Sprintf("https://spotify-lyrics-api-pi.vercel.app/?trackid=%s&format=lrc", url.QueryEscape(spotifyID))
+	apiURL := fmt.Sprintf("https://lyrics.paxsenix.org/spotify/lyrics?id=%s", url.QueryEscape(spotifyID))
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -462,13 +551,18 @@ func (c *LyricsClient) FetchLyricsFromSpotifyAPI(spotifyID string) (*LyricsRespo
 	}
 	defer resp.Body.Close()
 
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Spotify Lyrics API response: %w", err)
+	}
+
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == http.StatusTooManyRequests {
 			retryUntil := parseSpotifyRetryAfter(resp.Header.Get("Retry-After"), now)
 			setSpotifyLyricsRateLimitUntil(retryUntil)
 		}
 		var payload map[string]interface{}
-		if err := json.NewDecoder(resp.Body).Decode(&payload); err == nil {
+		if err := json.Unmarshal(bodyBytes, &payload); err == nil {
 			if msg, ok := payload["message"].(string); ok && strings.TrimSpace(msg) != "" {
 				return nil, fmt.Errorf("Spotify Lyrics API returned status %d: %s", resp.StatusCode, strings.TrimSpace(msg))
 			}
@@ -479,63 +573,7 @@ func (c *LyricsClient) FetchLyricsFromSpotifyAPI(spotifyID string) (*LyricsRespo
 		return nil, fmt.Errorf("Spotify Lyrics API returned status %d", resp.StatusCode)
 	}
 
-	var apiResp SpotifyLyricsAPIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("failed to parse Spotify Lyrics API response: %w", err)
-	}
-
-	if apiResp.Error {
-		msg := strings.TrimSpace(apiResp.Message)
-		if msg == "" {
-			msg = "Spotify Lyrics API returned error"
-		}
-		return nil, fmt.Errorf("%s", msg)
-	}
-
-	result := &LyricsResponse{
-		Lines:        make([]LyricsLine, 0, len(apiResp.Lines)),
-		SyncType:     apiResp.SyncType,
-		Instrumental: false,
-		PlainLyrics:  "",
-		Provider:     "Spotify Lyrics API",
-		Source:       "Spotify Lyrics API",
-	}
-
-	for _, line := range apiResp.Lines {
-		words := strings.TrimSpace(line.Words)
-		if words == "" {
-			continue
-		}
-		startMs := parseSpotifyLyricsTimeTagToMs(line.TimeTag)
-		result.Lines = append(result.Lines, LyricsLine{
-			StartTimeMs: startMs,
-			Words:       words,
-			EndTimeMs:   0,
-		})
-	}
-
-	if len(result.Lines) > 1 {
-		for i := 0; i < len(result.Lines)-1; i++ {
-			nextStart := result.Lines[i+1].StartTimeMs
-			if nextStart > result.Lines[i].StartTimeMs {
-				result.Lines[i].EndTimeMs = nextStart
-			}
-		}
-		last := len(result.Lines) - 1
-		if result.Lines[last].EndTimeMs == 0 {
-			result.Lines[last].EndTimeMs = result.Lines[last].StartTimeMs + 5000
-		}
-	}
-
-	if len(result.Lines) == 0 {
-		return nil, fmt.Errorf("Spotify Lyrics API returned empty lines")
-	}
-
-	if result.SyncType == "" {
-		result.SyncType = "LINE_SYNCED"
-	}
-
-	return result, nil
+	return parseSpotifyLyricsResponseBody(bodyBytes)
 }
 
 func (c *LyricsClient) findBestMatch(results []LRCLibResponse, targetDurationSec float64) *LRCLibResponse {
@@ -624,7 +662,6 @@ func (c *LyricsClient) FetchLyricsAllSources(spotifyID, trackName, artistName st
 
 	GoLog("[Lyrics] Searching for: %s - %s (providers: %v)\n", artistName, trackName, providerOrder)
 
-	// Cascade through all configured built-in providers
 	for _, providerName := range providerOrder {
 		GoLog("[Lyrics] Trying provider: %s\n", providerName)
 

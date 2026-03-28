@@ -11,13 +11,11 @@ import 'package:spotiflac_android/utils/logger.dart';
 
 const _settingsKey = 'app_settings';
 const _migrationVersionKey = 'settings_migration_version';
-const _currentMigrationVersion = 6;
+const _currentMigrationVersion = 7;
 const _spotifyClientSecretKey = 'spotify_client_secret';
 final _log = AppLogger('SettingsProvider');
 
 class SettingsNotifier extends Notifier<AppSettings> {
-  static const List<int> _youtubeOpusSupportedBitrates = [128, 256, 320];
-  static const List<int> _youtubeMp3SupportedBitrates = [128, 256, 320];
   static final RegExp _isoRegionPattern = RegExp(r'^[A-Z]{2}$');
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
@@ -36,11 +34,12 @@ class SettingsNotifier extends Notifier<AppSettings> {
     final prefs = await _prefs;
     final json = prefs.getString(_settingsKey);
     if (json != null) {
-      state = AppSettings.fromJson(jsonDecode(json));
+      state = AppSettings.fromJson(
+        Map<String, dynamic>.from(jsonDecode(json) as Map),
+      );
 
       await _runMigrations(prefs);
       await _normalizeIosDownloadDirectoryIfNeeded();
-      await _normalizeYouTubeBitratesIfNeeded();
       await _normalizeSongLinkRegionIfNeeded();
     }
 
@@ -53,7 +52,11 @@ class SettingsNotifier extends Notifier<AppSettings> {
   }
 
   void _syncLyricsSettingsToBackend() {
-    PlatformBridge.setLyricsProviders(state.lyricsProviders).catchError((e) {
+    if (!PlatformBridge.supportsCoreBackend) return;
+
+    PlatformBridge.setLyricsProviders(state.lyricsProviders).catchError((
+      Object e,
+    ) {
       _log.w('Failed to sync lyrics providers to backend: $e');
     });
 
@@ -62,17 +65,19 @@ class SettingsNotifier extends Notifier<AppSettings> {
       'include_romanization_netease': state.lyricsIncludeRomanizationNetease,
       'multi_person_word_by_word': state.lyricsMultiPersonWordByWord,
       'musixmatch_language': state.musixmatchLanguage,
-    }).catchError((e) {
+    }).catchError((Object e) {
       _log.w('Failed to sync lyrics fetch options to backend: $e');
     });
   }
 
   void _syncNetworkCompatibilitySettingsToBackend() {
+    if (!PlatformBridge.supportsCoreBackend) return;
+
     final compatibilityMode = state.networkCompatibilityMode;
     PlatformBridge.setNetworkCompatibilityOptions(
       allowHttp: compatibilityMode,
       insecureTls: compatibilityMode,
-    ).catchError((e) {
+    ).catchError((Object e) {
       _log.w('Failed to sync network compatibility options to backend: $e');
     });
   }
@@ -117,11 +122,11 @@ class SettingsNotifier extends Notifier<AppSettings> {
           useCustomSpotifyCredentials: false,
         );
       }
-      // Migration 6: Tidal HIGH quality removed — migrate to LOSSLESS
-      if (state.audioQuality == 'HIGH') {
-        state = state.copyWith(audioQuality: 'LOSSLESS');
-      }
       state = state.copyWith(lastSeenVersion: AppInfo.version);
+      // Migration 7: YouTube is no longer a built-in service — reset to Tidal
+      if (state.defaultService == 'youtube') {
+        state = state.copyWith(defaultService: 'tidal');
+      }
       await prefs.setInt(_migrationVersionKey, _currentMigrationVersion);
       await _saveSettings();
     }
@@ -151,49 +156,6 @@ class SettingsNotifier extends Notifier<AppSettings> {
     } finally {
       _isSavingSettings = false;
     }
-  }
-
-  int _nearestSupportedBitrate(int value, List<int> supported) {
-    var nearest = supported.first;
-    var nearestDistance = (value - nearest).abs();
-
-    for (final option in supported.skip(1)) {
-      final distance = (value - option).abs();
-      // On tie, prefer higher quality bitrate.
-      if (distance < nearestDistance ||
-          (distance == nearestDistance && option > nearest)) {
-        nearest = option;
-        nearestDistance = distance;
-      }
-    }
-
-    return nearest;
-  }
-
-  int _normalizeYouTubeOpusBitrate(int bitrate) {
-    return _nearestSupportedBitrate(bitrate, _youtubeOpusSupportedBitrates);
-  }
-
-  int _normalizeYouTubeMp3Bitrate(int bitrate) {
-    return _nearestSupportedBitrate(bitrate, _youtubeMp3SupportedBitrates);
-  }
-
-  Future<void> _normalizeYouTubeBitratesIfNeeded() async {
-    final normalizedOpus = _normalizeYouTubeOpusBitrate(
-      state.youtubeOpusBitrate,
-    );
-    final normalizedMp3 = _normalizeYouTubeMp3Bitrate(state.youtubeMp3Bitrate);
-
-    if (normalizedOpus == state.youtubeOpusBitrate &&
-        normalizedMp3 == state.youtubeMp3Bitrate) {
-      return;
-    }
-
-    state = state.copyWith(
-      youtubeOpusBitrate: normalizedOpus,
-      youtubeMp3Bitrate: normalizedMp3,
-    );
-    await _saveSettings();
   }
 
   Future<void> _normalizeIosDownloadDirectoryIfNeeded() async {
@@ -375,6 +337,11 @@ class SettingsNotifier extends Notifier<AppSettings> {
     _saveSettings();
   }
 
+  void setCreatePlaylistFolder(bool enabled) {
+    state = state.copyWith(createPlaylistFolder: enabled);
+    _saveSettings();
+  }
+
   void setUseAlbumArtistForFolders(bool enabled) {
     state = state.copyWith(useAlbumArtistForFolders: enabled);
     _saveSettings();
@@ -406,8 +373,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
   }
 
   void setMetadataSource(String source) {
-    final normalized = source == 'deezer' ? 'deezer' : 'deezer';
-    state = state.copyWith(metadataSource: normalized);
+    state = state.copyWith(metadataSource: source);
     _saveSettings();
   }
 
@@ -416,6 +382,15 @@ class SettingsNotifier extends Notifier<AppSettings> {
       state = state.copyWith(clearSearchProvider: true);
     } else {
       state = state.copyWith(searchProvider: provider);
+    }
+    _saveSettings();
+  }
+
+  void setHomeFeedProvider(String? provider) {
+    if (provider == null || provider.isEmpty) {
+      state = state.copyWith(clearHomeFeedProvider: true);
+    } else {
+      state = state.copyWith(homeFeedProvider: provider);
     }
     _saveSettings();
   }
@@ -451,15 +426,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
     _saveSettings();
   }
 
-  void setYoutubeOpusBitrate(int bitrate) {
-    final normalized = _normalizeYouTubeOpusBitrate(bitrate);
-    state = state.copyWith(youtubeOpusBitrate: normalized);
-    _saveSettings();
-  }
-
-  void setYoutubeMp3Bitrate(int bitrate) {
-    final normalized = _normalizeYouTubeMp3Bitrate(bitrate);
-    state = state.copyWith(youtubeMp3Bitrate: normalized);
+  void setTidalHighFormat(String format) {
+    state = state.copyWith(tidalHighFormat: format);
     _saveSettings();
   }
 

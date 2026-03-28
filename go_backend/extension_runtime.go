@@ -81,13 +81,17 @@ func SetExtensionTokens(extensionID string, accessToken, refreshToken string, ex
 }
 
 type ExtensionRuntime struct {
-	extensionID string
-	manifest    *ExtensionManifest
-	settings    map[string]interface{}
-	httpClient  *http.Client
-	cookieJar   http.CookieJar
-	dataDir     string
-	vm          *goja.Runtime
+	extensionID    string
+	manifest       *ExtensionManifest
+	settings       map[string]interface{}
+	httpClient     *http.Client
+	downloadClient *http.Client
+	cookieJar      http.CookieJar
+	dataDir        string
+	vm             *goja.Runtime
+
+	activeDownloadMu     sync.RWMutex
+	activeDownloadItemID string
 
 	storageMu      sync.RWMutex
 	storageCache   map[string]interface{}
@@ -132,13 +136,38 @@ func NewExtensionRuntime(ext *LoadedExtension) *ExtensionRuntime {
 		storageFlushDelay: defaultStorageFlushDelay,
 	}
 
+	runtime.httpClient = newExtensionHTTPClient(ext, jar, 30*time.Second)
+	runtime.downloadClient = newExtensionHTTPClient(ext, jar, DownloadTimeout)
+
+	return runtime
+}
+
+func (r *ExtensionRuntime) setActiveDownloadItemID(itemID string) {
+	r.activeDownloadMu.Lock()
+	defer r.activeDownloadMu.Unlock()
+	r.activeDownloadItemID = strings.TrimSpace(itemID)
+}
+
+func (r *ExtensionRuntime) clearActiveDownloadItemID() {
+	r.activeDownloadMu.Lock()
+	defer r.activeDownloadMu.Unlock()
+	r.activeDownloadItemID = ""
+}
+
+func (r *ExtensionRuntime) getActiveDownloadItemID() string {
+	r.activeDownloadMu.RLock()
+	defer r.activeDownloadMu.RUnlock()
+	return r.activeDownloadItemID
+}
+
+func newExtensionHTTPClient(ext *LoadedExtension, jar http.CookieJar, timeout time.Duration) *http.Client {
 	// Extension sandbox enforces HTTPS-only domains. Do not apply global
 	// allow_http scheme downgrade here, because some extension APIs (e.g.
 	// spotify-web) will redirect http -> https and can end up in 301 loops.
 	// We still reuse sharedTransport so insecure TLS compatibility mode remains effective.
 	client := &http.Client{
 		Transport: sharedTransport,
-		Timeout:   30 * time.Second,
+		Timeout:   timeout,
 		Jar:       jar,
 	}
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -165,9 +194,7 @@ func NewExtensionRuntime(ext *LoadedExtension) *ExtensionRuntime {
 		}
 		return nil
 	}
-	runtime.httpClient = client
-
-	return runtime
+	return client
 }
 
 type RedirectBlockedError struct {

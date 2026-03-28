@@ -1,6 +1,7 @@
 package gobackend
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,10 @@ import (
 
 type SongLinkClient struct {
 	client *http.Client
+}
+
+type songLinkPlatformLink struct {
+	URL string `json:"url"`
 }
 
 type TrackAvailability struct {
@@ -43,6 +48,7 @@ var (
 	songLinkCheckAvailabilityFromDeezer = func(s *SongLinkClient, deezerTrackID string) (*TrackAvailability, error) {
 		return s.CheckAvailabilityFromDeezer(deezerTrackID)
 	}
+	songLinkRetryConfig = DefaultRetryConfig
 )
 
 func NewSongLinkClient() *SongLinkClient {
@@ -130,7 +136,14 @@ func (s *SongLinkClient) CheckTrackAvailability(spotifyTrackID string, isrc stri
 }
 
 func (s *SongLinkClient) checkTrackAvailabilityFromSpotify(spotifyTrackID string) (*TrackAvailability, error) {
-	songLinkRateLimiter.WaitForSlot()
+	availability, pageErr := s.checkTrackAvailabilityFromSpotifyPage(spotifyTrackID)
+	if pageErr == nil {
+		return availability, nil
+	}
+
+	if !songLinkRateLimiter.TryAcquire() {
+		return nil, fmt.Errorf("song.link page lookup failed: %w (SongLink local rate limit exceeded)", pageErr)
+	}
 
 	spotifyURL := fmt.Sprintf("https://open.spotify.com/track/%s", spotifyTrackID)
 	apiURL := buildSongLinkURLFromTarget(spotifyURL, "")
@@ -140,10 +153,10 @@ func (s *SongLinkClient) checkTrackAvailabilityFromSpotify(spotifyTrackID string
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	retryConfig := DefaultRetryConfig()
+	retryConfig := songLinkRetryConfig()
 	resp, err := DoRequestWithRetry(s.client, req, retryConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check availability: %w", err)
+		return nil, fmt.Errorf("song.link page lookup failed: %w; SongLink API lookup failed: %w", pageErr, err)
 	}
 	defer resp.Body.Close()
 
@@ -154,10 +167,10 @@ func (s *SongLinkClient) checkTrackAvailabilityFromSpotify(spotifyTrackID string
 		return nil, fmt.Errorf("track not found on any streaming platform")
 	}
 	if resp.StatusCode == 429 {
-		return nil, fmt.Errorf("SongLink rate limit exceeded")
+		return nil, fmt.Errorf("song.link page lookup failed: %w; SongLink API rate limit exceeded", pageErr)
 	}
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("SongLink API returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("song.link page lookup failed: %w; SongLink API returned status %d", pageErr, resp.StatusCode)
 	}
 
 	body, err := ReadResponseBody(resp)
@@ -166,59 +179,102 @@ func (s *SongLinkClient) checkTrackAvailabilityFromSpotify(spotifyTrackID string
 	}
 
 	var songLinkResp struct {
-		LinksByPlatform map[string]struct {
-			URL string `json:"url"`
-		} `json:"linksByPlatform"`
+		LinksByPlatform map[string]songLinkPlatformLink `json:"linksByPlatform"`
 	}
 
 	if err := json.Unmarshal(body, &songLinkResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	availability := &TrackAvailability{
-		SpotifyID: spotifyTrackID,
+	LogWarn("SongLink", "Spotify %s resolved via SongLink API after song.link page failure: %v", spotifyTrackID, pageErr)
+	return buildTrackAvailabilityFromSongLinkLinks(spotifyTrackID, songLinkResp.LinksByPlatform), nil
+}
+
+func (s *SongLinkClient) checkTrackAvailabilityFromSpotifyPage(spotifyTrackID string) (*TrackAvailability, error) {
+	pageURL := fmt.Sprintf("https://song.link/s/%s", spotifyTrackID)
+	req, err := http.NewRequest("GET", pageURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create song.link page request: %w", err)
 	}
 
-	if tidalLink, ok := songLinkResp.LinksByPlatform["tidal"]; ok && tidalLink.URL != "" {
-		availability.Tidal = true
-		availability.TidalURL = tidalLink.URL
-		availability.TidalID = extractTidalIDFromURL(tidalLink.URL)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+	req.Header.Set("User-Agent", getRandomUserAgent())
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch song.link page: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		return nil, fmt.Errorf("track not found on song.link page")
+	}
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("song.link page returned status %d", resp.StatusCode)
 	}
 
-	if amazonLink, ok := songLinkResp.LinksByPlatform["amazonMusic"]; ok && amazonLink.URL != "" {
-		availability.Amazon = true
-		availability.AmazonURL = amazonLink.URL
+	body, err := ReadResponseBody(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read song.link page: %w", err)
 	}
 
-	if deezerLink, ok := songLinkResp.LinksByPlatform["deezer"]; ok && deezerLink.URL != "" {
-		availability.Deezer = true
-		availability.DeezerURL = deezerLink.URL
-		availability.DeezerID = extractDeezerIDFromURL(deezerLink.URL)
+	nextDataJSON, err := extractSongLinkNextDataJSON(body)
+	if err != nil {
+		return nil, err
 	}
 
-	if qobuzLink, ok := songLinkResp.LinksByPlatform["qobuz"]; ok && qobuzLink.URL != "" {
-		availability.Qobuz = true
-		availability.QobuzURL = qobuzLink.URL
-		availability.QobuzID = extractQobuzIDFromURL(qobuzLink.URL)
+	var pageData struct {
+		Props struct {
+			PageProps struct {
+				PageData struct {
+					Sections []struct {
+						Links []struct {
+							Platform string `json:"platform"`
+							URL      string `json:"url"`
+							Show     bool   `json:"show"`
+						} `json:"links"`
+					} `json:"sections"`
+				} `json:"pageData"`
+			} `json:"pageProps"`
+		} `json:"props"`
+	}
+	if err := json.Unmarshal(nextDataJSON, &pageData); err != nil {
+		return nil, fmt.Errorf("failed to decode song.link page data: %w", err)
 	}
 
-	// Prefer youtubeMusic URLs — they bypass Cobalt login requirements
-	if ytMusicLink, ok := songLinkResp.LinksByPlatform["youtubeMusic"]; ok && ytMusicLink.URL != "" {
-		availability.YouTube = true
-		availability.YouTubeURL = ytMusicLink.URL
-		availability.YouTubeID = extractYouTubeIDFromURL(ytMusicLink.URL)
-	}
-
-	// Fallback to regular youtube if youtubeMusic not available
-	if !availability.YouTube {
-		if youtubeLink, ok := songLinkResp.LinksByPlatform["youtube"]; ok && youtubeLink.URL != "" {
-			availability.YouTube = true
-			availability.YouTubeURL = youtubeLink.URL
-			availability.YouTubeID = extractYouTubeIDFromURL(youtubeLink.URL)
+	linksByPlatform := make(map[string]songLinkPlatformLink)
+	for _, section := range pageData.Props.PageProps.PageData.Sections {
+		for _, link := range section.Links {
+			if !link.Show || strings.TrimSpace(link.URL) == "" {
+				continue
+			}
+			linksByPlatform[link.Platform] = songLinkPlatformLink{URL: link.URL}
 		}
 	}
 
-	return availability, nil
+	if len(linksByPlatform) == 0 {
+		return nil, fmt.Errorf("song.link page contained no usable platform links")
+	}
+
+	return buildTrackAvailabilityFromSongLinkLinks(spotifyTrackID, linksByPlatform), nil
+}
+
+func extractSongLinkNextDataJSON(body []byte) ([]byte, error) {
+	const startMarker = `<script id="__NEXT_DATA__" type="application/json">`
+	const endMarker = `</script>`
+
+	start := bytes.Index(body, []byte(startMarker))
+	if start < 0 {
+		return nil, fmt.Errorf("song.link page missing __NEXT_DATA__")
+	}
+	start += len(startMarker)
+
+	end := bytes.Index(body[start:], []byte(endMarker))
+	if end < 0 {
+		return nil, fmt.Errorf("song.link page has unterminated __NEXT_DATA__")
+	}
+
+	return body[start : start+end], nil
 }
 
 func (s *SongLinkClient) checkTrackAvailabilityFromISRC(isrc string) (*TrackAvailability, error) {
@@ -459,7 +515,7 @@ func (s *SongLinkClient) CheckAlbumAvailability(spotifyAlbumID string) (*AlbumAv
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	retryConfig := DefaultRetryConfig()
+	retryConfig := songLinkRetryConfig()
 	resp, err := DoRequestWithRetry(s.client, req, retryConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check album availability: %w", err)
@@ -542,7 +598,7 @@ func (s *SongLinkClient) checkAvailabilityFromDeezerSongLink(deezerTrackID strin
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	retryConfig := DefaultRetryConfig()
+	retryConfig := songLinkRetryConfig()
 	resp, err := DoRequestWithRetry(s.client, req, retryConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check availability: %w", err)
@@ -647,7 +703,7 @@ func (s *SongLinkClient) CheckAvailabilityByPlatform(platform, entityType, entit
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	retryConfig := DefaultRetryConfig()
+	retryConfig := songLinkRetryConfig()
 	resp, err := DoRequestWithRetry(s.client, req, retryConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check availability: %w", err)
@@ -728,6 +784,51 @@ func (s *SongLinkClient) CheckAvailabilityByPlatform(platform, entityType, entit
 	return availability, nil
 }
 
+func buildTrackAvailabilityFromSongLinkLinks(spotifyTrackID string, links map[string]songLinkPlatformLink) *TrackAvailability {
+	availability := &TrackAvailability{
+		SpotifyID: spotifyTrackID,
+	}
+
+	if availability.SpotifyID == "" {
+		if spotifyLink, ok := links["spotify"]; ok && spotifyLink.URL != "" {
+			availability.SpotifyID = extractSpotifyIDFromURL(spotifyLink.URL)
+		}
+	}
+	if tidalLink, ok := links["tidal"]; ok && tidalLink.URL != "" {
+		availability.Tidal = true
+		availability.TidalURL = tidalLink.URL
+		availability.TidalID = extractTidalIDFromURL(tidalLink.URL)
+	}
+	if amazonLink, ok := links["amazonMusic"]; ok && amazonLink.URL != "" {
+		availability.Amazon = true
+		availability.AmazonURL = amazonLink.URL
+	}
+	if qobuzLink, ok := links["qobuz"]; ok && qobuzLink.URL != "" {
+		availability.Qobuz = true
+		availability.QobuzURL = qobuzLink.URL
+		availability.QobuzID = extractQobuzIDFromURL(qobuzLink.URL)
+	}
+	if deezerLink, ok := links["deezer"]; ok && deezerLink.URL != "" {
+		availability.Deezer = true
+		availability.DeezerURL = deezerLink.URL
+		availability.DeezerID = extractDeezerIDFromURL(deezerLink.URL)
+	}
+	if ytMusicLink, ok := links["youtubeMusic"]; ok && ytMusicLink.URL != "" {
+		availability.YouTube = true
+		availability.YouTubeURL = ytMusicLink.URL
+		availability.YouTubeID = extractYouTubeIDFromURL(ytMusicLink.URL)
+	}
+	if !availability.YouTube {
+		if youtubeLink, ok := links["youtube"]; ok && youtubeLink.URL != "" {
+			availability.YouTube = true
+			availability.YouTubeURL = youtubeLink.URL
+			availability.YouTubeID = extractYouTubeIDFromURL(youtubeLink.URL)
+		}
+	}
+
+	return availability
+}
+
 func extractSpotifyIDFromURL(spotifyURL string) string {
 	parts := strings.Split(spotifyURL, "/track/")
 	if len(parts) > 1 {
@@ -802,7 +903,7 @@ func (s *SongLinkClient) CheckAvailabilityFromURL(inputURL string) (*TrackAvaila
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	retryConfig := DefaultRetryConfig()
+	retryConfig := songLinkRetryConfig()
 	resp, err := DoRequestWithRetry(s.client, req, retryConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check availability: %w", err)

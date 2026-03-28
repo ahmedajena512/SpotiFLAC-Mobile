@@ -9,8 +9,7 @@ import (
 	"time"
 )
 
-// NeteaseClient fetches lyrics from NetEase Cloud Music (music.163.com).
-// This is a direct public API — no proxy dependency.
+// NeteaseClient fetches lyrics through Paxsenix's NetEase endpoints.
 type NeteaseClient struct {
 	httpClient *http.Client
 }
@@ -59,12 +58,9 @@ func (c *NeteaseClient) SearchSong(trackName, artistName string) (int64, error) 
 		return 0, fmt.Errorf("empty search query")
 	}
 
-	searchURL := "http://music.163.com/api/search/pc"
+	searchURL := "https://lyrics.paxsenix.org/netease/search"
 	params := url.Values{}
-	params.Set("s", query)
-	params.Set("type", "1")
-	params.Set("limit", "1")
-	params.Set("offset", "0")
+	params.Set("q", query)
 
 	fullURL := searchURL + "?" + params.Encode()
 
@@ -102,12 +98,9 @@ func (c *NeteaseClient) SearchSong(trackName, artistName string) (int64, error) 
 
 // FetchLyricsByID fetches synced lyrics for a given Netease song ID.
 func (c *NeteaseClient) FetchLyricsByID(songID int64, includeTranslation, includeRomanization bool) (string, error) {
-	lyricsURL := "http://music.163.com/api/song/lyric"
+	lyricsURL := "https://lyrics.paxsenix.org/netease/lyrics"
 	params := url.Values{}
 	params.Set("id", fmt.Sprintf("%d", songID))
-	params.Set("lv", "1")
-	params.Set("tv", "1")
-	params.Set("rv", "1")
 
 	fullURL := lyricsURL + "?" + params.Encode()
 

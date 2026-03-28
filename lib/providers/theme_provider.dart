@@ -57,7 +57,6 @@ class ThemeNotifier extends Notifier<ThemeSettings> {
     await _saveToStorage();
   }
 
-  /// Set custom seed color (used when dynamic color is disabled)
   Future<void> setSeedColor(Color color) async {
     state = state.copyWith(seedColorValue: color.toARGB32());
     await _saveToStorage();

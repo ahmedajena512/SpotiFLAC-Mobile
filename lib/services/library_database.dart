@@ -123,7 +123,7 @@ class LibraryDatabase {
 
     return await openDatabase(
       path,
-      version: 4, // Bumped version for bitrate column
+      version: 4,
       onConfigure: (db) async {
         await db.rawQuery('PRAGMA journal_mode = WAL');
         await db.execute('PRAGMA synchronous = NORMAL');
@@ -255,18 +255,39 @@ class LibraryDatabase {
   Future<void> upsertBatch(List<Map<String, dynamic>> items) async {
     if (items.isEmpty) return;
     final db = await database;
-    final batch = db.batch();
-
-    for (final json in items) {
-      batch.insert(
-        'library',
-        _jsonToDbRow(json),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    }
-
-    await batch.commit(noResult: true);
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final json in items) {
+        batch.insert(
+          'library',
+          _jsonToDbRow(json),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit(noResult: true);
+    });
     _log.i('Batch inserted ${items.length} items');
+  }
+
+  Future<void> replaceAll(List<Map<String, dynamic>> items) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('library');
+      if (items.isEmpty) {
+        return;
+      }
+
+      final batch = txn.batch();
+      for (final json in items) {
+        batch.insert(
+          'library',
+          _jsonToDbRow(json),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+    _log.i('Replaced library with ${items.length} items');
   }
 
   Future<List<Map<String, dynamic>>> getAll({int? limit, int? offset}) async {
@@ -331,13 +352,11 @@ class LibraryDatabase {
     String? trackName,
     String? artistName,
   }) async {
-    // First try ISRC if available
     if (isrc != null && isrc.isNotEmpty) {
       final byIsrc = await getByIsrc(isrc);
       if (byIsrc != null) return byIsrc;
     }
 
-    // Then try name matching
     if (trackName != null && artistName != null) {
       final matches = await findByTrackAndArtist(trackName, artistName);
       if (matches.isNotEmpty) return matches.first;
@@ -523,7 +542,6 @@ class LibraryDatabase {
     return rows.map((r) => r['file_path'] as String).toSet();
   }
 
-  /// Delete multiple items by their file paths
   Future<int> deleteByPaths(List<String> filePaths) async {
     if (filePaths.isEmpty) return 0;
     final db = await database;
