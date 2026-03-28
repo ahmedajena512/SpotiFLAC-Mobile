@@ -655,6 +655,176 @@ func DownloadWithFallback(requestJSON string) (string, error) {
 	return errorResponse("All services failed. Last error: " + lastErr.Error())
 }
 
+type StreamResponse struct {
+	Success   bool   `json:"success"`
+	StreamURL string `json:"stream_url,omitempty"`
+	Service   string `json:"service,omitempty"`
+	Error     string `json:"error,omitempty"`
+	LyricsLRC string `json:"lyrics_lrc,omitempty"`
+}
+
+func streamErrorResponse(msg string) (string, error) {
+	resp := StreamResponse{Success: false, Error: msg}
+	js, _ := json.Marshal(resp)
+	return string(js), nil
+}
+
+// GetStreamURLJSON attempts to get a direct playback URL for a track
+// by resolving its ID and calling the provider's GetDownloadURL without downloading.
+func GetStreamURLJSON(requestJSON string) (string, error) {
+	var req DownloadRequest
+	if err := json.Unmarshal([]byte(requestJSON), &req); err != nil {
+		return streamErrorResponse("Invalid request: " + err.Error())
+	}
+	applySongLinkRegionFromRequest(&req)
+
+	req.TrackName = strings.TrimSpace(req.TrackName)
+	req.ArtistName = strings.TrimSpace(req.ArtistName)
+	req.AlbumName = strings.TrimSpace(req.AlbumName)
+	req.AlbumArtist = strings.TrimSpace(req.AlbumArtist)
+
+	enrichRequestExtendedMetadata(&req)
+
+	allServices := []string{"tidal", "qobuz", "youtube"}
+	preferredService := req.Service
+	if preferredService == "" {
+		preferredService = "tidal"
+	}
+
+	GoLog("[GetStreamURL] Preferred service: '%s'\n", req.Service)
+
+	services := []string{preferredService}
+	for _, s := range allServices {
+		if s != preferredService {
+			services = append(services, s)
+		}
+	}
+
+	GoLog("[GetStreamURL] Service order: %v\n", services)
+
+	// Fire parallel metadata/lyrics fetch
+	var parallelResult *ParallelDownloadResult
+	parallelDone := make(chan struct{})
+	go func() {
+		defer close(parallelDone)
+		coverURL := req.CoverURL
+		embedLyrics := req.EmbedLyrics
+		if !req.EmbedMetadata {
+			coverURL = ""
+			embedLyrics = false
+		}
+		// If embedLyrics is false but we explicitly want lyrics for stream, we should override
+		// for streaming, we almost always want lyrics if available.
+		embedLyrics = true 
+		
+		parallelResult = FetchCoverAndLyricsParallel(
+			coverURL,
+			req.EmbedMaxQualityCover,
+			req.SpotifyID,
+			req.TrackName,
+			req.ArtistName,
+			embedLyrics,
+			int64(req.DurationMS),
+		)
+	}()
+
+	var lastErr error
+
+	for _, service := range services {
+		GoLog("[GetStreamURL] Trying service: %s\n", service)
+
+		var streamURL string
+		var err error
+
+		switch service {
+		case "tidal":
+			downloader := NewTidalDownloader()
+			track, tErr := resolveTidalTrackForRequest(req, downloader, "TidalStream")
+			if tErr == nil {
+				quality := req.Quality
+				if quality == "" {
+					quality = "LOSSLESS" // Use lossless for streaming if not specified
+				}
+				info, dErr := downloader.GetDownloadURL(track.ID, quality)
+				if dErr == nil {
+					streamURL = info.URL
+				} else {
+					err = dErr
+				}
+			} else {
+				err = tErr
+			}
+		case "qobuz":
+			downloader := NewQobuzDownloader()
+			track, qErr := resolveQobuzTrackForRequest(req, downloader, "QobuzStream")
+			if qErr == nil {
+				quality := req.Quality
+				if quality == "" {
+					quality = "27" // FLAC or HighRes
+				}
+				info, dErr := downloader.GetDownloadURL(track.ID, quality)
+				if dErr == nil {
+					streamURL = info.DownloadURL
+				} else {
+					err = dErr
+				}
+			} else {
+				err = qErr
+			}
+		case "youtube":
+			// For YouTube, GetDownloadURL takes the youtube URL directly or resolves it
+			// We can use the existing DownloadFromYouTube logic to resolve the URL first
+			ytURL := req.SpotifyID
+			if !IsYouTubeURLExport(ytURL) && req.ISRC != "" {
+				// We don't have a direct YT search-to-URL exposed cleanly in exports.go that returns just the URL
+				// So we'll skip YouTube for stream if we don't already have the YT URL
+				err = fmt.Errorf("youtube streaming requires direct youtube URL or implementation of search-to-stream")
+			} else {
+				downloader := NewYouTubeDownloader()
+				resp, yErr := downloader.GetDownloadURL(ytURL, YouTubeQualityOpus256)
+				if yErr == nil {
+					streamURL = resp.URL
+				} else {
+					err = yErr
+				}
+			}
+		}
+
+		if err == nil && streamURL != "" {
+			// Wait for lyrics
+			<-parallelDone
+			
+			var lyrics string
+			if parallelResult != nil && parallelResult.LyricsLRC != "" {
+				lyrics = parallelResult.LyricsLRC
+			}
+
+			// If it's a DASH manifest from Tidal, it might not play directly in just_audio without an extension
+			// but we'll return it anyway as just_audio uses ExoPlayer which supports DASH.
+			resp := StreamResponse{
+				Success:   true,
+				StreamURL: streamURL,
+				Service:   service,
+				LyricsLRC: lyrics,
+			}
+			jsonBytes, _ := json.Marshal(resp)
+			return string(jsonBytes), nil
+		}
+
+		if err != nil {
+			lastErr = err
+			GoLog("[GetStreamURL] %s error: %v\n", service, err)
+		}
+	}
+
+	<-parallelDone // ensure goroutine finishes even on failure
+	
+	if lastErr == nil {
+		lastErr = fmt.Errorf("no stream URL found")
+	}
+	return streamErrorResponse("All services failed. Last error: " + lastErr.Error())
+}
+
 func GetDownloadProgress() string {
 	progress := getProgress()
 	jsonBytes, _ := json.Marshal(progress)

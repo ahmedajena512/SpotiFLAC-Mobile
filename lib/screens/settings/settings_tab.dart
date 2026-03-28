@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:spotiflac_android/constants/app_info.dart';
+// import 'package:spotiflac_android/constants/app_info.dart';
 import 'package:spotiflac_android/l10n/l10n.dart';
 import 'package:spotiflac_android/screens/settings/appearance_settings_page.dart';
 import 'package:spotiflac_android/screens/settings/download_settings_page.dart';
 import 'package:spotiflac_android/screens/settings/extensions_page.dart';
 import 'package:spotiflac_android/screens/settings/library_settings_page.dart';
 import 'package:spotiflac_android/screens/settings/options_settings_page.dart';
-import 'package:spotiflac_android/screens/settings/about_page.dart';
+// import 'package:spotiflac_android/screens/settings/about_page.dart';
 import 'package:spotiflac_android/screens/settings/cache_management_page.dart';
-import 'package:spotiflac_android/screens/settings/donate_page.dart';
+// import 'package:spotiflac_android/screens/settings/donate_page.dart';
 import 'package:spotiflac_android/screens/settings/log_screen.dart';
 import 'package:spotiflac_android/utils/app_bar_layout.dart';
 import 'package:spotiflac_android/widgets/settings_group.dart';
@@ -104,7 +104,9 @@ class SettingsTab extends ConsumerWidget {
                     title: l10n.settingsExtensions,
                     subtitle: l10n.settingsExtensionsSubtitle,
                     onTap: () => _navigateTo(context, const ExtensionsPage()),
+                    showDivider: false,
                   ),
+                  /*
                   SettingsItem(
                     icon: Icons.favorite_outline,
                     title: l10n.settingsDonate,
@@ -112,6 +114,7 @@ class SettingsTab extends ConsumerWidget {
                     onTap: () => _navigateTo(context, const DonatePage()),
                     showDivider: false,
                   ),
+                  */
                 ],
               );
             },
@@ -129,7 +132,9 @@ class SettingsTab extends ConsumerWidget {
                     title: l10n.logTitle,
                     subtitle: l10n.settingsLogsSubtitle,
                     onTap: () => _navigateTo(context, const LogScreen()),
+                    showDivider: false,
                   ),
+                  /*
                   SettingsItem(
                     icon: Icons.info_outline,
                     title: l10n.settingsAbout,
@@ -137,6 +142,7 @@ class SettingsTab extends ConsumerWidget {
                     onTap: () => _navigateTo(context, const AboutPage()),
                     showDivider: false,
                   ),
+                  */
                 ],
               );
             },

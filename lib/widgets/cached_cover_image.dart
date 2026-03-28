@@ -35,18 +35,15 @@ class CachedCoverImage extends StatelessWidget {
       fit: fit,
       memCacheWidth: memCacheWidth,
       memCacheHeight: memCacheHeight,
-      cacheManager: CoverCacheManager.isInitialized 
-          ? CoverCacheManager.instance 
+      cacheManager: CoverCacheManager.isInitialized
+          ? CoverCacheManager.instance
           : null,
       errorWidget: errorWidget,
       placeholder: placeholder,
     );
 
     if (borderRadius != null) {
-      return ClipRRect(
-        borderRadius: borderRadius!,
-        child: image,
-      );
+      return ClipRRect(borderRadius: borderRadius!, child: image);
     }
 
     return image;
@@ -56,8 +53,8 @@ class CachedCoverImage extends StatelessWidget {
 CachedNetworkImageProvider cachedCoverImageProvider(String url) {
   return CachedNetworkImageProvider(
     url,
-    cacheManager: CoverCacheManager.isInitialized 
-        ? CoverCacheManager.instance 
+    cacheManager: CoverCacheManager.isInitialized
+        ? CoverCacheManager.instance
         : null,
   );
 }

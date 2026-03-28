@@ -1,0 +1,8 @@
+framework module "Gobackend" {
+	header "ref.h"
+    header "Gobackend.objc.h"
+    header "Universe.objc.h"
+    header "Gobackend.h"
+
+    export *
+}

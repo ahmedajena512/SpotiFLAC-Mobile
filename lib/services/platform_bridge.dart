@@ -75,6 +75,50 @@ class PlatformBridge {
     return response;
   }
 
+  static Future<Map<String, dynamic>> getStreamUrl({
+    required DownloadRequestPayload payload,
+  }) async {
+    final routedPayload = payload.withStrategy(
+      useExtensions: true,
+      useFallback: true,
+    );
+    _log.i(
+      'getStreamUrl: "${payload.trackName}" by ${payload.artistName} '
+      '(service: ${payload.service})',
+    );
+    final response = await _invokeDownloadMethod('getStreamUrl', routedPayload);
+    if (response['success'] == true) {
+      final service = response['service'] ?? payload.service;
+      String streamUrl = response['stream_url'] ?? '';
+
+      // Tidal sometimes returns a manifest instead of a direct URL
+      // Format: MANIFEST:base64(json)
+      // JSON contains: {"urls": ["http..."]}
+      if (streamUrl.startsWith('MANIFEST:')) {
+        try {
+          final base64String = streamUrl.substring(9);
+          final decodedJson = utf8.decode(base64Decode(base64String));
+          final manifestData = jsonDecode(decodedJson) as Map<String, dynamic>;
+          if (manifestData.containsKey('urls') &&
+              manifestData['urls'] is List &&
+              (manifestData['urls'] as List).isNotEmpty) {
+            streamUrl = manifestData['urls'][0] as String;
+            _log.i('Extracted direct stream URL from MANIFEST');
+            response['stream_url'] = streamUrl; // Update response
+          }
+        } catch (e) {
+          _log.e('Failed to decode MANIFEST URL: $e');
+        }
+      }
+
+      _log.i('Stream URL success via $service: $streamUrl');
+    } else {
+      final error = response['error'] ?? 'Unknown error';
+      _log.e('Stream URL failed: $error');
+    }
+    return response;
+  }
+
   static Future<Map<String, dynamic>> getDownloadProgress() async {
     final result = await _channel.invokeMethod('getDownloadProgress');
     return jsonDecode(result as String) as Map<String, dynamic>;

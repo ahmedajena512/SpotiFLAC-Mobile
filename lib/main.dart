@@ -11,6 +11,7 @@ import 'package:spotiflac_android/providers/extension_provider.dart';
 import 'package:spotiflac_android/providers/library_collections_provider.dart';
 import 'package:spotiflac_android/providers/local_library_provider.dart';
 import 'package:spotiflac_android/providers/settings_provider.dart';
+import 'package:spotiflac_android/services/audio_player_service.dart';
 import 'package:spotiflac_android/services/notification_service.dart';
 import 'package:spotiflac_android/services/share_intent_service.dart';
 import 'package:spotiflac_android/services/cover_cache_manager.dart';
@@ -236,6 +237,7 @@ class _EagerInitializationState extends ConsumerState<_EagerInitialization>
       await Future.wait([
         NotificationService().initialize(),
         ShareIntentService().initialize(),
+        AudioPlayerService.init(),
       ]);
     } catch (e) {
       debugPrint('Failed to initialize app services: $e');

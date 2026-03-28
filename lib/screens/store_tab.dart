@@ -58,7 +58,9 @@ class _StoreTabState extends ConsumerState<StoreTab> {
     final downloadingId = ref.watch(
       storeProvider.select((s) => s.downloadingId),
     );
-    final hasRegistryUrl = ref.watch(storeProvider.select((s) => s.hasRegistryUrl));
+    final hasRegistryUrl = ref.watch(
+      storeProvider.select((s) => s.hasRegistryUrl),
+    );
     final registryUrl = ref.watch(storeProvider.select((s) => s.registryUrl));
     final filteredExtensions = StoreState(
       extensions: extensions,
@@ -167,7 +169,9 @@ class _StoreTabState extends ConsumerState<StoreTab> {
                           ),
                         ),
                         onChanged: (value) {
-                          ref.read(storeProvider.notifier).setSearchQuery(value);
+                          ref
+                              .read(storeProvider.notifier)
+                              .setSearchQuery(value);
                         },
                       );
                     },
@@ -231,7 +235,8 @@ class _StoreTabState extends ConsumerState<StoreTab> {
                       _CategoryChip(
                         label: context.l10n.storeFilterIntegration,
                         icon: Icons.link,
-                        isSelected: selectedCategory == StoreCategory.integration,
+                        isSelected:
+                            selectedCategory == StoreCategory.integration,
                         onTap: () => ref
                             .read(storeProvider.notifier)
                             .setCategory(StoreCategory.integration),
@@ -309,9 +314,9 @@ class _StoreTabState extends ConsumerState<StoreTab> {
             const SizedBox(height: 24),
             Text(
               context.l10n.storeAddRepoTitle,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -347,7 +352,11 @@ class _StoreTabState extends ConsumerState<StoreTab> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline, size: 20, color: colorScheme.onErrorContainer),
+                    Icon(
+                      Icons.error_outline,
+                      size: 20,
+                      color: colorScheme.onErrorContainer,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -503,7 +512,9 @@ class _StoreTabState extends ConsumerState<StoreTab> {
           ),
           const SizedBox(height: 16),
           Text(
-            hasFilters ? context.l10n.storeEmptyNoResults : context.l10n.storeEmptyNoExtensions,
+            hasFilters
+                ? context.l10n.storeEmptyNoResults
+                : context.l10n.storeEmptyNoExtensions,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),

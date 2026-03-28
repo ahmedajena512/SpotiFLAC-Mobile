@@ -221,14 +221,31 @@ class _LocalAlbumScreenState extends ConsumerState<LocalAlbumScreen> {
       return;
     }
     try {
+      // Build playback queue from all tracks in this album
+      final allTracks = _sortedTracksCache
+          .where((t) => !isCueVirtualPath(t.filePath))
+          .toList();
+      final playbackTracks = allTracks
+          .map(
+            (t) => PlaybackTrack(
+              id: t.id,
+              name: t.trackName,
+              artistName: t.artistName,
+              albumName: t.albumName,
+              localCoverPath: t.coverPath,
+              filePath: t.filePath,
+              quality: t.format != null
+                  ? '${t.bitDepth ?? ''}/${((t.sampleRate ?? 0) / 1000).round()}kHz ${t.format!.toUpperCase()}'
+                  : null,
+            ),
+          )
+          .toList();
+      final tappedIndex = allTracks.indexWhere((t) => t.id == track.id);
       await ref
           .read(playbackProvider.notifier)
-          .playLocalPath(
-            path: track.filePath,
-            title: track.trackName,
-            artist: track.artistName,
-            album: track.albumName,
-            coverUrl: track.coverPath ?? '',
+          .playTrackList(
+            playbackTracks,
+            startIndex: tappedIndex >= 0 ? tappedIndex : 0,
           );
     } catch (e) {
       if (mounted) {

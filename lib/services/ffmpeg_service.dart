@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:ffmpeg_kit_flutter_new_full/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter_new_full/ffmpeg_kit_config.dart';
-import 'package:ffmpeg_kit_flutter_new_full/ffmpeg_session.dart';
-import 'package:ffmpeg_kit_flutter_new_full/return_code.dart';
-import 'package:ffmpeg_kit_flutter_new_full/session_state.dart';
+import 'package:ffmpeg_kit_flutter_minimal/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_minimal/ffmpeg_kit_config.dart';
+import 'package:ffmpeg_kit_flutter_minimal/ffmpeg_session.dart';
+import 'package:ffmpeg_kit_flutter_minimal/return_code.dart';
+import 'package:ffmpeg_kit_flutter_minimal/session_state.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:spotiflac_android/utils/logger.dart';
 
@@ -1023,6 +1023,91 @@ class FFmpegService {
     return null;
   }
 
+  static Future<String?> embedMetadataToM4a({
+    required String m4aPath,
+    String? coverPath,
+    Map<String, String>? metadata,
+  }) async {
+    final tempDir = await getTemporaryDirectory();
+    final tempOutput = _nextTempEmbedPath(tempDir.path, '.m4a');
+
+    final StringBuffer cmdBuffer = StringBuffer();
+    cmdBuffer.write('-i "$m4aPath" ');
+
+    if (coverPath != null) {
+      cmdBuffer.write('-i "$coverPath" ');
+    }
+
+    cmdBuffer.write('-map 0:a ');
+    cmdBuffer.write('-map_metadata -1 ');
+
+    if (coverPath != null) {
+      cmdBuffer.write('-map 1:0 ');
+      // M4A uses 'mov,mp4,m4a,3gp,3g2,mj2' which supports video/image streams for cover
+      cmdBuffer.write('-c:v copy ');
+      cmdBuffer.write('-disposition:v:0 attached_pic ');
+    }
+
+    cmdBuffer.write('-c:a copy ');
+
+    if (metadata != null) {
+      metadata.forEach((key, value) {
+        final sanitizedValue = value.replaceAll('"', '\\"');
+        // M4A uses standard FFmpeg tags, we map common ones
+        String ffmpegKey = key.toLowerCase();
+        if (key == 'TRACKNUMBER') ffmpegKey = 'track';
+        if (key == 'DISCNUMBER') ffmpegKey = 'disc';
+        if (key == 'DATE') ffmpegKey = 'date';
+        cmdBuffer.write('-metadata $ffmpegKey="$sanitizedValue" ');
+      });
+    }
+
+    cmdBuffer.write('-f mp4 "$tempOutput" -y');
+
+    final command = cmdBuffer.toString();
+    _log.d(
+      'Executing FFmpeg M4A embed command: ${_previewCommandForLog(command)}',
+    );
+
+    final result = await _execute(command);
+
+    if (result.success) {
+      try {
+        final tempFile = File(tempOutput);
+        final originalFile = File(m4aPath);
+
+        if (await tempFile.exists()) {
+          if (await originalFile.exists()) {
+            await originalFile.delete();
+          }
+          await tempFile.copy(m4aPath);
+          await tempFile.delete();
+
+          _log.d('M4A metadata embedded successfully');
+          return m4aPath;
+        } else {
+          _log.e('Temp M4A output file not found: $tempOutput');
+          return null;
+        }
+      } catch (e) {
+        _log.e('Failed to replace M4A file after metadata embed: $e');
+        return null;
+      }
+    }
+
+    try {
+      final tempFile = File(tempOutput);
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+    } catch (e) {
+      _log.w('Failed to cleanup temp M4A file: $e');
+    }
+
+    _log.e('M4A Metadata/Cover embed failed: ${result.output}');
+    return null;
+  }
+
   static Future<String?> embedMetadataToOpus({
     required String opusPath,
     String? coverPath,
@@ -1648,7 +1733,11 @@ class FFmpegService {
     final outputPaths = <String>[];
     final inputExt = audioPath.toLowerCase().split('.').last;
     // For lossless formats, keep as FLAC; for others, keep original format
-    final outputExt = (inputExt == 'flac' || inputExt == 'wav' || inputExt == 'ape' || inputExt == 'wv')
+    final outputExt =
+        (inputExt == 'flac' ||
+            inputExt == 'wav' ||
+            inputExt == 'ape' ||
+            inputExt == 'wv')
         ? 'flac'
         : inputExt;
 
@@ -1681,7 +1770,9 @@ class FFmpegService {
         cmdBuffer.write('-c:a copy ');
       }
 
-      final artist = track.artist.isNotEmpty ? track.artist : (albumMetadata['artist'] ?? '');
+      final artist = track.artist.isNotEmpty
+          ? track.artist
+          : (albumMetadata['artist'] ?? '');
       final album = albumMetadata['album'] ?? '';
       final genre = albumMetadata['genre'] ?? '';
       final date = albumMetadata['date'] ?? '';
@@ -1706,7 +1797,9 @@ class FFmpegService {
       cmdBuffer.write('"$outputPath" -y');
 
       final command = cmdBuffer.toString();
-      _log.d('CUE split track ${track.number}: ${_previewCommandForLog(command)}');
+      _log.d(
+        'CUE split track ${track.number}: ${_previewCommandForLog(command)}',
+      );
 
       final result = await _execute(command);
       if (!result.success) {

@@ -39,11 +39,11 @@ class ThemeSettings {
   }
 
   Map<String, dynamic> toJson() => {
-        kThemeModeKey: themeMode.name,
-        kUseDynamicColorKey: useDynamicColor,
-        kSeedColorKey: seedColorValue,
-        kUseAmoledKey: useAmoled,
-      };
+    kThemeModeKey: themeMode.name,
+    kUseDynamicColorKey: useDynamicColor,
+    kSeedColorKey: seedColorValue,
+    kUseAmoledKey: useAmoled,
+  };
 
   factory ThemeSettings.fromJson(Map<String, dynamic> json) {
     return ThemeSettings(
@@ -66,7 +66,10 @@ class ThemeSettings {
 
   @override
   int get hashCode =>
-      themeMode.hashCode ^ useDynamicColor.hashCode ^ seedColorValue.hashCode ^ useAmoled.hashCode;
+      themeMode.hashCode ^
+      useDynamicColor.hashCode ^
+      seedColorValue.hashCode ^
+      useAmoled.hashCode;
 }
 
 ThemeMode _themeModeFromString(String? value) {

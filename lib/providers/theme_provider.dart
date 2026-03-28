@@ -81,4 +81,3 @@ class ThemeNotifier extends Notifier<ThemeSettings> {
     );
   }
 }
-

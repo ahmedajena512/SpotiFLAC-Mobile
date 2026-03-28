@@ -6,25 +6,27 @@ class SettingsGroup extends StatelessWidget {
   final List<Widget> children;
   final EdgeInsetsGeometry? margin;
 
-  const SettingsGroup({
-    super.key,
-    required this.children,
-    this.margin,
-  });
+  const SettingsGroup({super.key, required this.children, this.margin});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // Use a more contrasting color for cards
     // In dark mode with dynamic color, surfaceContainerHighest can be too similar to surface
     // So we add a slight white overlay to make it more visible
     // In light mode with dynamic color, we add a slight black overlay for the same reason
-    final cardColor = isDark 
-        ? Color.alphaBlend(Colors.white.withValues(alpha: 0.08), colorScheme.surface)
-        : Color.alphaBlend(Colors.black.withValues(alpha: 0.04), colorScheme.surface);
-    
+    final cardColor = isDark
+        ? Color.alphaBlend(
+            Colors.white.withValues(alpha: 0.08),
+            colorScheme.surface,
+          )
+        : Color.alphaBlend(
+            Colors.black.withValues(alpha: 0.04),
+            colorScheme.surface,
+          );
+
     return Container(
       margin: margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
@@ -34,17 +36,13 @@ class SettingsGroup extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: children,
-        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: children),
       ),
     );
   }
 }
 
 class SettingsItem extends StatelessWidget {
-
   final IconData? icon;
   final String title;
   final String? subtitle;
@@ -65,7 +63,7 @@ class SettingsItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -85,17 +83,13 @@ class SettingsItem extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
+                      Text(title, style: Theme.of(context).textTheme.bodyLarge),
                       if (subtitle != null) ...[
                         const SizedBox(height: 2),
                         Text(
                           subtitle!,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ],
@@ -106,7 +100,10 @@ class SettingsItem extends StatelessWidget {
                   trailing!,
                 ] else if (onTap != null) ...[
                   const SizedBox(width: 8),
-                  Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.chevron_right,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ],
               ],
             ),
@@ -126,7 +123,6 @@ class SettingsItem extends StatelessWidget {
 }
 
 class SettingsSwitchItem extends StatelessWidget {
-
   final IconData? icon;
   final String title;
   final String? subtitle;
@@ -150,7 +146,7 @@ class SettingsSwitchItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDisabled = !enabled || onChanged == null;
-    
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -165,7 +161,13 @@ class SettingsSwitchItem extends StatelessWidget {
               child: Row(
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, color: isDisabled ? colorScheme.outline : colorScheme.onSurfaceVariant, size: 24),
+                    Icon(
+                      icon,
+                      color: isDisabled
+                          ? colorScheme.outline
+                          : colorScheme.onSurfaceVariant,
+                      size: 24,
+                    ),
                     const SizedBox(width: 16),
                   ],
                   Expanded(
@@ -174,17 +176,21 @@ class SettingsSwitchItem extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: isDisabled ? colorScheme.outline : null,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: isDisabled ? colorScheme.outline : null,
+                              ),
                         ),
                         if (subtitle != null) ...[
                           const SizedBox(height: 2),
                           Text(
                             subtitle!,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: isDisabled ? colorScheme.outline : colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: isDisabled
+                                      ? colorScheme.outline
+                                      : colorScheme.onSurfaceVariant,
+                                ),
                           ),
                         ],
                       ],
@@ -214,7 +220,6 @@ class SettingsSwitchItem extends StatelessWidget {
 }
 
 class SettingsSectionHeader extends StatelessWidget {
-
   final String title;
 
   const SettingsSectionHeader({super.key, required this.title});

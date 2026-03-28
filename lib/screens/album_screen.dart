@@ -10,12 +10,16 @@ import 'package:spotiflac_android/providers/recent_access_provider.dart';
 import 'package:spotiflac_android/providers/local_library_provider.dart';
 import 'package:spotiflac_android/providers/playback_provider.dart';
 import 'package:spotiflac_android/services/platform_bridge.dart';
-import 'package:spotiflac_android/utils/file_access.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
 import 'package:spotiflac_android/providers/library_collections_provider.dart';
 import 'package:spotiflac_android/widgets/playlist_picker_sheet.dart';
 import 'package:spotiflac_android/utils/clickable_metadata.dart';
+import 'package:spotiflac_android/services/download_request_payload.dart';
+import 'package:spotiflac_android/models/library_styles.dart';
+import 'package:spotiflac_android/providers/library_appearance_provider.dart';
+import 'package:spotiflac_android/widgets/library_styles/spotify_album_view.dart';
+import 'package:spotiflac_android/widgets/library_styles/apple_music_album_view.dart';
 
 class _AlbumCache {
   static final Map<String, _CacheEntry> _cache = {};
@@ -239,8 +243,48 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final libraryStyle = ref.watch(libraryAppearanceProvider).libraryStyle;
     final colorScheme = Theme.of(context).colorScheme;
     final tracks = _tracks ?? [];
+
+    if (libraryStyle == LibraryStyle.spotifyStyle) {
+      return SpotifyAlbumView(
+        albumId: widget.albumId,
+        albumName: widget.albumName,
+        coverUrl: widget.coverUrl,
+        tracks: tracks,
+        extensionId: widget.extensionId,
+        artistId: widget.artistId,
+        artistName: widget.artistName,
+        isLoading: _isLoading,
+        error: _error,
+        onDownloadAll: () => _downloadAll(context),
+        onLoveAll: () {
+          if (tracks.isNotEmpty) _loveAll(tracks);
+        },
+        onDownloadTrack: (track) => _downloadTrack(context, track),
+      );
+    }
+
+    if (libraryStyle == LibraryStyle.appleMusicStyle) {
+      return AppleMusicAlbumView(
+        albumId: widget.albumId,
+        albumName: widget.albumName,
+        coverUrl: widget.coverUrl,
+        tracks: tracks,
+        extensionId: widget.extensionId,
+        artistId: widget.artistId,
+        artistName: widget.artistName,
+        isLoading: _isLoading,
+        error: _error,
+        onDownloadAll: () => _downloadAll(context),
+        onLoveAll: () {
+          if (tracks.isNotEmpty) _loveAll(tracks);
+        },
+        onDownloadTrack: (track) => _downloadTrack(context, track),
+      );
+    }
+
     final pageBackgroundColor = colorScheme.surface;
 
     return Scaffold(
@@ -531,6 +575,8 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
           key: ValueKey(track.id),
           child: _AlbumTrackItem(
             track: track,
+            allTracks: tracks,
+            trackIndex: index,
             onDownload: () => _downloadTrack(context, track),
           ),
         );
@@ -799,30 +845,113 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
   }
 }
 
-class _AlbumTrackItem extends ConsumerWidget {
+class _AlbumTrackItem extends ConsumerStatefulWidget {
   final Track track;
+  final List<Track> allTracks;
+  final int trackIndex;
   final VoidCallback onDownload;
 
-  const _AlbumTrackItem({required this.track, required this.onDownload});
+  const _AlbumTrackItem({
+    required this.track,
+    required this.allTracks,
+    required this.trackIndex,
+    required this.onDownload,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AlbumTrackItem> createState() => _AlbumTrackItemState();
+}
+
+class _AlbumTrackItemState extends ConsumerState<_AlbumTrackItem> {
+  bool _isLoadingStream = false;
+
+  void _handleTap(BuildContext context, {required bool isQueued}) async {
+    if (isQueued) return;
+
+    try {
+      await ref
+          .read(playbackProvider.notifier)
+          .playTracks(widget.allTracks, startIndex: widget.trackIndex);
+      return;
+    } catch (_) {
+      // Local file not available, fall back to streaming the track
+    }
+
+    if (_isLoadingStream) return;
+
+    setState(() {
+      _isLoadingStream = true;
+    });
+
+    try {
+      final settings = ref.read(settingsProvider);
+      final payload = DownloadRequestPayload(
+        spotifyId: widget.track.id,
+        trackName: widget.track.name,
+        artistName: widget.track.artistName,
+        albumName: widget.track.albumName,
+        service: settings.defaultService,
+        quality: settings.audioQuality,
+        durationMs: widget.track.duration * 1000,
+        coverUrl: widget.track.coverUrl ?? '',
+        outputDir: settings.downloadDirectory,
+        filenameFormat: settings.filenameFormat,
+      );
+
+      final response = await PlatformBridge.getStreamUrl(payload: payload);
+
+      if (response['success'] == true) {
+        final streamUrl = response['stream_url'] as String?;
+        final lyrics = response['lyrics_lrc'] as String?;
+
+        if (streamUrl != null && streamUrl.isNotEmpty) {
+          await ref
+              .read(playbackProvider.notifier)
+              .playLocalPath(
+                path: widget.track.id, // Using Spotify ID as identifier
+                title: widget.track.name,
+                artist: widget.track.artistName,
+                album: widget.track.albumName,
+                coverUrl: widget.track.coverUrl ?? '',
+                streamUrl: streamUrl,
+                lyricsUrl: lyrics,
+                track: widget.track,
+              );
+        } else {
+          widget.onDownload();
+        }
+      } else {
+        widget.onDownload();
+      }
+    } catch (e) {
+      widget.onDownload();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingStream = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     final queueItem = ref.watch(
       downloadQueueLookupProvider.select(
-        (lookup) => lookup.byTrackId[track.id],
+        (lookup) => lookup.byTrackId[widget.track.id],
       ),
     );
 
     final isInHistory = ref.watch(
       downloadHistoryProvider.select((state) {
-        if (state.isDownloaded(track.id)) return true;
-        final isrc = track.isrc?.trim();
+        if (state.isDownloaded(widget.track.id)) return true;
+        final isrc = widget.track.isrc?.trim();
         if (isrc != null && isrc.isNotEmpty && state.getByIsrc(isrc) != null) {
           return true;
         }
-        return state.findByTrackAndArtist(track.name, track.artistName) != null;
+        return state.findByTrackAndArtist(widget.track.name, widget.track.artistName) != null;
       }),
     );
 
@@ -835,9 +964,9 @@ class _AlbumTrackItem extends ConsumerWidget {
         ? ref.watch(
             localLibraryProvider.select(
               (state) => state.existsInLibrary(
-                isrc: track.isrc,
-                trackName: track.name,
-                artistName: track.artistName,
+                isrc: widget.track.isrc,
+                trackName: widget.track.name,
+                artistName: widget.track.artistName,
               ),
             ),
           )
@@ -859,7 +988,7 @@ class _AlbumTrackItem extends ConsumerWidget {
             width: 32,
             child: Center(
               child: Text(
-                '${track.trackNumber ?? 0}',
+                '${widget.track.trackNumber ?? 0}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
@@ -868,7 +997,7 @@ class _AlbumTrackItem extends ConsumerWidget {
             ),
           ),
           title: Text(
-            track.name,
+            widget.track.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(
@@ -879,9 +1008,9 @@ class _AlbumTrackItem extends ConsumerWidget {
             children: [
               Flexible(
                 child: ClickableArtistName(
-                  artistName: track.artistName,
-                  artistId: track.artistId,
-                  coverUrl: track.coverUrl,
+                  artistName: widget.track.artistName,
+                  artistId: widget.track.artistId,
+                  coverUrl: widget.track.coverUrl,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: colorScheme.onSurfaceVariant),
@@ -921,100 +1050,37 @@ class _AlbumTrackItem extends ConsumerWidget {
               ],
             ],
           ),
-          trailing: TrackCollectionQuickActions(track: track),
-          onTap: () => _handleTap(context, ref, isQueued: isQueued),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _isLoadingStream
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12.0),
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : IconButton(
+                      icon: Icon(
+                        Icons.play_arrow_rounded,
+                        color: colorScheme.primary,
+                      ),
+                      tooltip: 'Play',
+                      onPressed: () => _handleTap(context, isQueued: isQueued),
+                    ),
+              TrackCollectionQuickActions(track: widget.track),
+            ],
+          ),
+          onTap: () => _handleTap(context, isQueued: isQueued),
           onLongPress: () => TrackCollectionQuickActions.showTrackOptionsSheet(
             context,
             ref,
-            track,
+            widget.track,
           ),
         ),
       ),
     );
-  }
-
-  void _handleTap(
-    BuildContext context,
-    WidgetRef ref, {
-    required bool isQueued,
-  }) async {
-    if (isQueued) return;
-
-    final playedLocal = await _playLocalIfAvailable(context, ref);
-    if (playedLocal) {
-      return;
-    }
-
-    onDownload();
-  }
-
-  Future<bool> _playLocalIfAvailable(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final localState = ref.read(localLibraryProvider);
-    final historyState = ref.read(downloadHistoryProvider);
-    final historyNotifier = ref.read(downloadHistoryProvider.notifier);
-
-    try {
-      DownloadHistoryItem? historyItem = historyNotifier.getBySpotifyId(
-        track.id,
-      );
-      final isrc = track.isrc?.trim();
-      historyItem ??= (isrc != null && isrc.isNotEmpty)
-          ? historyNotifier.getByIsrc(isrc)
-          : null;
-      historyItem ??= historyState.findByTrackAndArtist(
-        track.name,
-        track.artistName,
-      );
-
-      if (historyItem != null) {
-        final exists = await fileExists(historyItem.filePath);
-        if (exists) {
-          await ref
-              .read(playbackProvider.notifier)
-              .playLocalPath(
-                path: historyItem.filePath,
-                title: track.name,
-                artist: track.artistName,
-                album: track.albumName,
-                coverUrl: track.coverUrl ?? '',
-              );
-          return true;
-        }
-        historyNotifier.removeFromHistory(historyItem.id);
-      }
-
-      var localItem = (isrc != null && isrc.isNotEmpty)
-          ? localState.getByIsrc(isrc)
-          : null;
-      localItem ??= localState.findByTrackAndArtist(
-        track.name,
-        track.artistName,
-      );
-
-      if (localItem != null && await fileExists(localItem.filePath)) {
-        await ref
-            .read(playbackProvider.notifier)
-            .playLocalPath(
-              path: localItem.filePath,
-              title: localItem.trackName,
-              artist: localItem.artistName,
-              album: localItem.albumName,
-              coverUrl: localItem.coverPath ?? track.coverUrl ?? '',
-            );
-        return true;
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.snackbarCannotOpenFile('$e'))),
-        );
-      }
-      return true;
-    }
-
-    return false;
   }
 }

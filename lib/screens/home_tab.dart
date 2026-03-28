@@ -27,6 +27,8 @@ import 'package:spotiflac_android/screens/playlist_screen.dart';
 import 'package:spotiflac_android/screens/downloaded_album_screen.dart';
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
+import 'package:spotiflac_android/providers/playback_provider.dart';
+import 'package:spotiflac_android/services/download_request_payload.dart';
 import 'package:spotiflac_android/utils/clickable_metadata.dart';
 
 class HomeTab extends ConsumerStatefulWidget {
@@ -3156,7 +3158,7 @@ class _SearchProviderDropdown extends ConsumerWidget {
   }
 }
 
-class _TrackItemWithStatus extends ConsumerWidget {
+class _TrackItemWithStatus extends ConsumerStatefulWidget {
   final Track track;
   final int index;
   final bool showDivider;
@@ -3177,28 +3179,142 @@ class _TrackItemWithStatus extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_TrackItemWithStatus> createState() =>
+      _TrackItemWithStatusState();
+}
+
+class _TrackItemWithStatusState extends ConsumerState<_TrackItemWithStatus> {
+  bool _isLoadingStream = false;
+
+  Future<void> _playStream() async {
+    final track = widget.track;
+
+    // Check if the track is downloaded
+    final historyItem = ref
+        .read(downloadHistoryProvider.notifier)
+        .getBySpotifyId(track.id);
+
+    if (historyItem != null) {
+      final exists = await fileExists(historyItem.filePath);
+      if (exists) {
+        // Track is downloaded, play it
+        await ref.read(playbackProvider.notifier).playTrackList([
+          PlaybackTrack(
+            id: historyItem.id,
+            name: historyItem.trackName,
+            artistName: historyItem.artistName,
+            albumName: historyItem.albumName,
+            coverUrl: historyItem.coverUrl,
+            filePath: historyItem.filePath,
+            quality: historyItem.quality,
+          ),
+        ], startIndex: 0);
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _isLoadingStream = true);
+
+    try {
+      final streamData = await PlatformBridge.getStreamUrl(
+        payload: DownloadRequestPayload(
+          spotifyId: track.id,
+          isrc: track.isrc ?? '',
+          trackName: track.name,
+          artistName: track.artistName,
+          albumName: track.albumName,
+          coverUrl: track.coverUrl ?? '',
+          service: track.source ?? ref.read(settingsProvider).defaultService,
+          quality: ref.read(settingsProvider).audioQuality,
+          outputDir: '', // Not needed for streaming
+          filenameFormat: '', // Not needed for streaming
+        ),
+      );
+
+      if (streamData['success'] == true && streamData['stream_url'] != null) {
+        // Derive display quality
+        final reqQuality = ref
+            .read(settingsProvider)
+            .audioQuality
+            .toLowerCase();
+        String displayQuality = "128kbps";
+        if (reqQuality.contains("flac") ||
+            reqQuality.contains("lossless") ||
+            reqQuality == '27' ||
+            reqQuality == '26') {
+          displayQuality = "16-bit/44.1kHz";
+        } else if (reqQuality.contains("high") ||
+            reqQuality.contains("hq") ||
+            reqQuality == '2') {
+          displayQuality = "320kbps";
+        }
+
+        final playbackTrack = PlaybackTrack(
+          id: track.id,
+          name: track.name,
+          artistName: track.artistName,
+          albumName: track.albumName,
+          coverUrl: track.coverUrl,
+          filePath: '',
+          durationMs: track.duration > 0 ? track.duration * 1000 : null,
+          streamUrl: streamData['stream_url'],
+          lyricsUrl: streamData['lyrics_lrc'],
+          quality: displayQuality,
+        );
+
+        await ref.read(playbackProvider.notifier).playTrackList([
+          playbackTrack,
+        ], startIndex: 0);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                streamData['error']?.toString() ??
+                    context.l10n.errorUrlFetchFailed,
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error playing stream: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingStream = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     final queueItem = ref.watch(
       downloadQueueLookupProvider.select(
-        (lookup) => lookup.byTrackId[track.id],
+        (lookup) => lookup.byTrackId[widget.track.id],
       ),
     );
 
     final isInHistory = ref.watch(
       downloadHistoryProvider.select((state) {
-        return state.isDownloaded(track.id);
+        return state.isDownloaded(widget.track.id);
       }),
     );
 
-    final isInLocalLibrary = showLocalLibraryIndicator
+    final isInLocalLibrary = widget.showLocalLibraryIndicator
         ? ref.watch(
             localLibraryProvider.select(
               (state) => state.existsInLibrary(
-                isrc: track.isrc,
-                trackName: track.name,
-                artistName: track.artistName,
+                isrc: widget.track.isrc,
+                trackName: widget.track.name,
+                artistName: widget.track.artistName,
               ),
             ),
           )
@@ -3207,10 +3323,10 @@ class _TrackItemWithStatus extends ConsumerWidget {
     double thumbWidth = 56;
     double thumbHeight = 56;
 
-    final extensionId = track.source ?? searchExtensionId;
+    final extensionId = widget.track.source ?? widget.searchExtensionId;
     final thumbSize = extensionId == null
         ? null
-        : thumbnailSizesByExtensionId[extensionId];
+        : widget.thumbnailSizesByExtensionId[extensionId];
     if (thumbSize != null) {
       thumbWidth = thumbSize.$1;
       thumbHeight = thumbSize.$2;
@@ -3232,7 +3348,7 @@ class _TrackItemWithStatus extends ConsumerWidget {
           onLongPress: () => TrackCollectionQuickActions.showTrackOptionsSheet(
             context,
             ref,
-            track,
+            widget.track,
           ),
           splashColor: colorScheme.primary.withValues(alpha: 0.12),
           highlightColor: colorScheme.primary.withValues(alpha: 0.08),
@@ -3242,9 +3358,9 @@ class _TrackItemWithStatus extends ConsumerWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: track.coverUrl != null
+                  child: widget.track.coverUrl != null
                       ? CachedNetworkImage(
-                          imageUrl: track.coverUrl!,
+                          imageUrl: widget.track.coverUrl!,
                           width: thumbWidth,
                           height: thumbHeight,
                           fit: BoxFit.cover,
@@ -3268,7 +3384,7 @@ class _TrackItemWithStatus extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        track.name,
+                        widget.track.name,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
@@ -3280,9 +3396,9 @@ class _TrackItemWithStatus extends ConsumerWidget {
                         children: [
                           Flexible(
                             child: ClickableArtistName(
-                              artistName: track.artistName,
-                              artistId: track.artistId,
-                              coverUrl: track.coverUrl,
+                              artistName: widget.track.artistName,
+                              artistId: widget.track.artistId,
+                              coverUrl: widget.track.coverUrl,
                               extensionId: extensionId,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
@@ -3329,12 +3445,39 @@ class _TrackItemWithStatus extends ConsumerWidget {
                     ],
                   ),
                 ),
-                TrackCollectionQuickActions(track: track),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _isLoadingStream
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 14.0),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : IconButton(
+                            icon: Icon(
+                              Icons.play_arrow_rounded,
+                              color: colorScheme.primary,
+                            ),
+                            tooltip: 'Play',
+                            onPressed: _playStream,
+                          ),
+                    IconButton(
+                      icon: const Icon(Icons.download_rounded),
+                      tooltip: context.l10n.downloadTitle,
+                      onPressed: widget.onDownload,
+                    ),
+                    TrackCollectionQuickActions(track: widget.track),
+                  ],
+                ),
               ],
             ),
           ),
         ),
-        if (showDivider)
+        if (widget.showDivider)
           Divider(
             height: 1,
             thickness: 1,
@@ -3358,42 +3501,28 @@ class _TrackItemWithStatus extends ConsumerWidget {
     if (isQueued) return;
 
     if (isInLocalLibrary) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.snackbarAlreadyInLibrary(track.name)),
-          ),
-        );
-      }
+      _playStream();
       return;
     }
 
     if (isInHistory) {
       final historyItem = ref
           .read(downloadHistoryProvider.notifier)
-          .getBySpotifyId(track.id);
+          .getBySpotifyId(widget.track.id);
       if (historyItem != null) {
         final exists = await fileExists(historyItem.filePath);
         if (exists) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  context.l10n.snackbarAlreadyDownloaded(track.name),
-                ),
-              ),
-            );
-          }
+          _playStream();
           return;
         } else {
           ref
               .read(downloadHistoryProvider.notifier)
-              .removeBySpotifyId(track.id);
+              .removeBySpotifyId(widget.track.id);
         }
       }
     }
 
-    onDownload();
+    _playStream();
   }
 }
 

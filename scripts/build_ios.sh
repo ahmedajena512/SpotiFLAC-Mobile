@@ -54,7 +54,7 @@ go mod tidy
 
 # Build XCFramework for iOS
 echo "Building XCFramework for iOS..."
-gomobile bind -target=ios -o "$OUTPUT_DIR/Gobackend.xcframework" .
+gomobile bind -target=ios,iossimulator -o "$OUTPUT_DIR/Gobackend.xcframework" .
 
 # Verify output
 if [ -d "$OUTPUT_DIR/Gobackend.xcframework" ]; then

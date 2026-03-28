@@ -17,6 +17,10 @@ import 'package:spotiflac_android/providers/playback_provider.dart';
 import 'package:spotiflac_android/providers/settings_provider.dart';
 import 'package:spotiflac_android/screens/track_metadata_screen.dart';
 import 'package:spotiflac_android/services/downloaded_embedded_cover_resolver.dart';
+import 'package:spotiflac_android/models/library_styles.dart';
+import 'package:spotiflac_android/providers/library_appearance_provider.dart';
+import 'package:spotiflac_android/widgets/library_styles/spotify_downloaded_album_view.dart';
+import 'package:spotiflac_android/widgets/library_styles/apple_music_downloaded_album_view.dart';
 
 class DownloadedAlbumScreen extends ConsumerStatefulWidget {
   final String albumName;
@@ -268,14 +272,30 @@ class _DownloadedAlbumScreenState extends ConsumerState<DownloadedAlbumScreen> {
 
   Future<void> _openFile(DownloadHistoryItem track) async {
     try {
+      // Build playback queue from all tracks in this album
+      final allHistoryItems = ref.read(
+        downloadHistoryProvider.select((s) => s.items),
+      );
+      final albumTracks = _getAlbumTracks(allHistoryItems);
+      final playbackTracks = albumTracks
+          .map(
+            (t) => PlaybackTrack(
+              id: t.id,
+              name: t.trackName,
+              artistName: t.artistName,
+              albumName: t.albumName,
+              coverUrl: t.coverUrl,
+              filePath: t.filePath,
+              quality: t.quality,
+            ),
+          )
+          .toList();
+      final tappedIndex = albumTracks.indexWhere((t) => t.id == track.id);
       await ref
           .read(playbackProvider.notifier)
-          .playLocalPath(
-            path: track.filePath,
-            title: track.trackName,
-            artist: track.artistName,
-            album: track.albumName,
-            coverUrl: track.coverUrl ?? '',
+          .playTrackList(
+            playbackTracks,
+            startIndex: tappedIndex >= 0 ? tappedIndex : 0,
           );
     } catch (e) {
       if (mounted) {
@@ -372,6 +392,62 @@ class _DownloadedAlbumScreenState extends ConsumerState<DownloadedAlbumScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() => _isSelectionMode = false);
       });
+    }
+
+    // Check library style setting
+    final libraryStyle = ref.watch(libraryAppearanceProvider).libraryStyle;
+    if (libraryStyle == LibraryStyle.spotifyStyle) {
+      final embeddedCoverPath = _resolveAlbumEmbeddedCoverPath(tracks);
+      final commonQuality = _getCommonQuality(tracks);
+      return PopScope(
+        canPop: !_isSelectionMode,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && _isSelectionMode) {
+            _exitSelectionMode();
+          }
+        },
+        child: SpotifyDownloadedAlbumView(
+          albumName: widget.albumName,
+          artistName: widget.artistName,
+          coverUrl: widget.coverUrl,
+          tracks: tracks,
+          embeddedCoverPath: embeddedCoverPath,
+          commonQuality: commonQuality,
+          isSelectionMode: _isSelectionMode,
+          selectedIds: _selectedIds,
+          onToggleSelection: _toggleSelection,
+          onEnterSelectionMode: _enterSelectionMode,
+          onOpenFile: _openFile,
+          onNavigateToMetadata: _navigateToMetadataScreen,
+        ),
+      );
+    }
+
+    if (libraryStyle == LibraryStyle.appleMusicStyle) {
+      final embeddedCoverPath = _resolveAlbumEmbeddedCoverPath(tracks);
+      final commonQuality = _getCommonQuality(tracks);
+      return PopScope(
+        canPop: !_isSelectionMode,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && _isSelectionMode) {
+            _exitSelectionMode();
+          }
+        },
+        child: AppleMusicDownloadedAlbumView(
+          albumName: widget.albumName,
+          artistName: widget.artistName,
+          coverUrl: widget.coverUrl,
+          tracks: tracks,
+          embeddedCoverPath: embeddedCoverPath,
+          commonQuality: commonQuality,
+          isSelectionMode: _isSelectionMode,
+          selectedIds: _selectedIds,
+          onToggleSelection: _toggleSelection,
+          onEnterSelectionMode: _enterSelectionMode,
+          onOpenFile: _openFile,
+          onNavigateToMetadata: _navigateToMetadataScreen,
+        ),
+      );
     }
 
     return PopScope(

@@ -133,9 +133,7 @@ class _LyricsProviderPriorityPageState
   void _disableProvider(String id) {
     if (_enabledProviders.length <= 1) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.l10n.lyricsProvidersAtLeastOne),
-        ),
+        SnackBar(content: Text(context.l10n.lyricsProvidersAtLeastOne)),
       );
       return;
     }

@@ -4,6 +4,10 @@ import 'package:spotiflac_android/l10n/l10n.dart';
 import 'package:spotiflac_android/l10n/supported_locales.dart';
 import 'package:spotiflac_android/providers/settings_provider.dart';
 import 'package:spotiflac_android/providers/theme_provider.dart';
+import 'package:spotiflac_android/models/player_styles.dart';
+import 'package:spotiflac_android/providers/player_appearance_provider.dart';
+import 'package:spotiflac_android/models/library_styles.dart';
+import 'package:spotiflac_android/providers/library_appearance_provider.dart';
 import 'package:spotiflac_android/utils/app_bar_layout.dart';
 import 'package:spotiflac_android/widgets/settings_group.dart';
 
@@ -133,6 +137,46 @@ class AppearanceSettingsPage extends ConsumerWidget {
                     onChanged: (mode) => ref
                         .read(settingsProvider.notifier)
                         .setHistoryViewMode(mode),
+                  ),
+                ],
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: SettingsSectionHeader(title: "Library Appearance"),
+            ),
+            SliverToBoxAdapter(
+              child: SettingsGroup(
+                children: [
+                  const _LibraryStyleDropdowns(),
+                ],
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: SettingsSectionHeader(title: "Player Appearance"),
+            ),
+            SliverToBoxAdapter(
+              child: SettingsGroup(
+                children: [
+                  const _PlayerStyleDropdowns(),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final useAmoled = ref
+                          .watch(playerAppearanceProvider)
+                          .useAmoledBackground;
+                      return SettingsSwitchItem(
+                        icon: Icons.contrast_rounded,
+                        title: "Player AMOLED Dark Mode",
+                        subtitle: "Forces a pure black background on players",
+                        value: useAmoled,
+                        onChanged: (val) {
+                          ref
+                              .read(playerAppearanceProvider.notifier)
+                              .setAmoledBackground(val);
+                        },
+                        showDivider: false,
+                      );
+                    },
                   ),
                 ],
               ),
@@ -801,18 +845,14 @@ class _LanguageSelector extends StatelessWidget {
                   return ListTile(
                     leading: Icon(
                       lang.$3,
-                      color: isSelected
-                          ? colorScheme.primary
-                          : colorScheme.onSurfaceVariant,
+                      color: isSelected ? colorScheme.primary : null,
                     ),
                     title: Text(
                       lang.$2,
                       style: TextStyle(
-                        color: isSelected
-                            ? colorScheme.primary
-                            : colorScheme.onSurface,
+                        color: isSelected ? colorScheme.primary : null,
                         fontWeight: isSelected
-                            ? FontWeight.w600
+                            ? FontWeight.bold
                             : FontWeight.normal,
                       ),
                     ),
@@ -828,6 +868,238 @@ class _LanguageSelector extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayerStyleDropdowns extends ConsumerWidget {
+  const _PlayerStyleDropdowns();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final playerState = ref.watch(playerAppearanceProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      children: [
+        ListTile(
+          leading: Icon(
+            Icons.smart_screen_outlined,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          title: const Text('Mini Player Style'),
+          subtitle: Text(playerState.miniPlayerStyle.displayName),
+          trailing: Icon(
+            Icons.chevron_right,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          onTap: () => _showMiniPlayerPicker(context, ref, playerState),
+        ),
+        const Divider(height: 1, indent: 56),
+        ListTile(
+          leading: Icon(
+            Icons.fullscreen_outlined,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          title: const Text('Now Playing Screen Style'),
+          subtitle: Text(playerState.nowPlayingStyle.displayName),
+          trailing: Icon(
+            Icons.chevron_right,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          onTap: () => _showNowPlayingPicker(context, ref, playerState),
+        ),
+        const Divider(height: 1, indent: 56),
+      ],
+    );
+  }
+
+  void _showMiniPlayerPicker(
+    BuildContext context,
+    WidgetRef ref,
+    PlayerAppearanceState state,
+  ) {
+    _showPickerBottomSheet<MiniPlayerStyle>(
+      context: context,
+      title: 'Mini Player Style',
+      items: MiniPlayerStyle.values,
+      currentValue: state.miniPlayerStyle,
+      getName: (style) => style.displayName,
+      onSelected: (style) {
+        ref.read(playerAppearanceProvider.notifier).setMiniPlayerStyle(style);
+      },
+    );
+  }
+
+  void _showNowPlayingPicker(
+    BuildContext context,
+    WidgetRef ref,
+    PlayerAppearanceState state,
+  ) {
+    _showPickerBottomSheet<NowPlayingStyle>(
+      context: context,
+      title: 'Now Playing Screen Style',
+      items: NowPlayingStyle.values,
+      currentValue: state.nowPlayingStyle,
+      getName: (style) => style.displayName,
+      onSelected: (style) {
+        ref.read(playerAppearanceProvider.notifier).setNowPlayingStyle(style);
+      },
+    );
+  }
+
+  void _showPickerBottomSheet<T>({
+    required BuildContext context,
+    required String title,
+    required List<T> items,
+    required T currentValue,
+    required String Function(T) getName,
+    required ValueChanged<T> onSelected,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  final isSelected = item == currentValue;
+                  return ListTile(
+                    title: Text(
+                      getName(item),
+                      style: TextStyle(
+                        color: isSelected ? colorScheme.primary : null,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? Icon(Icons.check, color: colorScheme.primary)
+                        : null,
+                    onTap: () {
+                      onSelected(item);
+                      Navigator.pop(context);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LibraryStyleDropdowns extends ConsumerWidget {
+  const _LibraryStyleDropdowns();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final libraryState = ref.watch(libraryAppearanceProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      children: [
+        ListTile(
+          leading: Icon(
+            Icons.library_music_outlined,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          title: const Text('Library Style'),
+          subtitle: Text(libraryState.libraryStyle.displayName),
+          trailing: Icon(
+            Icons.chevron_right,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          onTap: () => _showLibraryPicker(context, ref, libraryState),
+        ),
+      ],
+    );
+  }
+
+  void _showLibraryPicker(
+    BuildContext context,
+    WidgetRef ref,
+    LibraryAppearanceState state,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Library Style',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: LibraryStyle.values.length,
+                itemBuilder: (context, index) {
+                  final item = LibraryStyle.values[index];
+                  final isSelected = item == state.libraryStyle;
+                  return ListTile(
+                    title: Text(
+                      item.displayName,
+                      style: TextStyle(
+                        color: isSelected ? colorScheme.primary : null,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? Icon(Icons.check, color: colorScheme.primary)
+                        : null,
+                    onTap: () {
+                      ref
+                          .read(libraryAppearanceProvider.notifier)
+                          .setLibraryStyle(item);
+                      Navigator.pop(context);
+                    },
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),

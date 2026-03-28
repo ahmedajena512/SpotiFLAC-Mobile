@@ -12,13 +12,7 @@ enum DownloadStatus {
   skipped,
 }
 
-enum DownloadErrorType {
-  unknown,
-  notFound,
-  rateLimit,
-  network,
-  permission,
-}
+enum DownloadErrorType { unknown, notFound, rateLimit, network, permission }
 
 @JsonSerializable()
 class DownloadItem {
@@ -28,7 +22,8 @@ class DownloadItem {
   final DownloadStatus status;
   final double progress;
   final double speedMBps;
-  final int bytesReceived; // Bytes downloaded so far (for unknown size downloads)
+  final int
+  bytesReceived; // Bytes downloaded so far (for unknown size downloads)
   final String? filePath;
   final String? error;
   final DownloadErrorType? errorType;
@@ -86,7 +81,7 @@ class DownloadItem {
 
   String get errorMessage {
     if (error == null) return '';
-    
+
     switch (errorType) {
       case DownloadErrorType.notFound:
         return 'Song not found on any service';

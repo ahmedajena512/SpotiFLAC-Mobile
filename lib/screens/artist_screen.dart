@@ -13,13 +13,13 @@ import 'package:spotiflac_android/providers/recent_access_provider.dart';
 import 'package:spotiflac_android/providers/local_library_provider.dart';
 import 'package:spotiflac_android/providers/playback_provider.dart';
 import 'package:spotiflac_android/services/platform_bridge.dart';
-import 'package:spotiflac_android/utils/file_access.dart';
 import 'package:spotiflac_android/screens/album_screen.dart';
 import 'package:spotiflac_android/screens/home_tab.dart'
     show ExtensionAlbumScreen;
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
 import 'package:spotiflac_android/utils/clickable_metadata.dart';
+import 'package:spotiflac_android/services/download_request_payload.dart';
 
 class _ArtistCache {
   static final Map<String, _CacheEntry> _cache = {};
@@ -111,6 +111,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
   final ScrollController _scrollController = ScrollController();
   final PageController _popularPageController = PageController();
   int _popularCurrentPage = 0;
+  final _loadingStreamRanks = <int>{};
 
   bool _isSelectionMode = false;
   final Set<String> _selectedAlbumIds = {};
@@ -297,8 +298,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
               .toList();
         }
 
-        final topTracksList =
-            artistData['top_tracks'] as List<dynamic>? ?? [];
+        final topTracksList = artistData['top_tracks'] as List<dynamic>? ?? [];
         if (topTracksList.isNotEmpty) {
           topTracks = topTracksList
               .map((t) => _parseTrack(t as Map<String, dynamic>))
@@ -414,10 +414,9 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
 
   ArtistAlbum _parseArtistAlbum(Map<String, dynamic> data) {
     final totalTracksValue = data['total_tracks'];
-    final totalTracks =
-        totalTracksValue is int
-            ? totalTracksValue
-            : int.tryParse(totalTracksValue?.toString() ?? '') ?? 0;
+    final totalTracks = totalTracksValue is int
+        ? totalTracksValue
+        : int.tryParse(totalTracksValue?.toString() ?? '') ?? 0;
 
     return ArtistAlbum(
       id: data['id'] as String? ?? '',
@@ -1359,8 +1358,10 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
             },
             itemBuilder: (context, pageIndex) {
               final startIndex = pageIndex * tracksPerPage;
-              final endIndex =
-                  (startIndex + tracksPerPage).clamp(0, tracks.length);
+              final endIndex = (startIndex + tracksPerPage).clamp(
+                0,
+                tracks.length,
+              );
               final pageTracks = tracks.sublist(startIndex, endIndex);
 
               return Column(
@@ -1450,7 +1451,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
         final isQueued = queueItem != null;
 
         return InkWell(
-          onTap: () => _handlePopularTrackTap(track, isQueued: isQueued),
+          onTap: () => _handlePopularTrackTap(track, rank: rank, isQueued: isQueued),
           onLongPress: () => TrackCollectionQuickActions.showTrackOptionsSheet(
             context,
             ref,
@@ -1580,7 +1581,29 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                     ],
                   ),
                 ),
-                TrackCollectionQuickActions(track: track),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _loadingStreamRanks.contains(rank)
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12.0),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : IconButton(
+                            icon: Icon(
+                              Icons.play_arrow_rounded,
+                              color: colorScheme.primary,
+                            ),
+                            tooltip: 'Play',
+                            onPressed: () => _handlePopularTrackTap(track, rank: rank, isQueued: isQueued),
+                          ),
+                    TrackCollectionQuickActions(track: track),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1589,82 +1612,70 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
     );
   }
 
-  void _handlePopularTrackTap(Track track, {required bool isQueued}) async {
+  void _handlePopularTrackTap(Track track, {required int rank, required bool isQueued}) async {
     if (isQueued) return;
+    final tracks = _topTracks;
+    if (tracks == null || tracks.isEmpty) return;
 
-    final playedLocal = await _playLocalIfAvailable(track);
-    if (playedLocal) {
+    final tappedIndex = tracks.indexWhere((t) => t.id == track.id);
+    try {
+      await ref
+          .read(playbackProvider.notifier)
+          .playTracks(tracks, startIndex: tappedIndex >= 0 ? tappedIndex : 0);
       return;
+    } catch (_) {
+      // No local file available — fall back to streaming
     }
 
-    _downloadTrack(track);
-  }
+    if (_loadingStreamRanks.contains(rank)) return;
 
-  Future<bool> _playLocalIfAvailable(Track track) async {
-    final localState = ref.read(localLibraryProvider);
-    final historyState = ref.read(downloadHistoryProvider);
-    final historyNotifier = ref.read(downloadHistoryProvider.notifier);
+    setState(() => _loadingStreamRanks.add(rank));
 
     try {
-      DownloadHistoryItem? historyItem = historyNotifier.getBySpotifyId(
-        track.id,
-      );
-      final isrc = track.isrc?.trim();
-      historyItem ??= (isrc != null && isrc.isNotEmpty)
-          ? historyNotifier.getByIsrc(isrc)
-          : null;
-      historyItem ??= historyState.findByTrackAndArtist(
-        track.name,
-        track.artistName,
+      final settings = ref.read(settingsProvider);
+      final payload = DownloadRequestPayload(
+        spotifyId: track.id,
+        trackName: track.name,
+        artistName: track.artistName,
+        albumName: track.albumName,
+        service: settings.defaultService,
+        quality: settings.audioQuality,
+        durationMs: track.duration * 1000,
+        coverUrl: track.coverUrl ?? '',
+        outputDir: settings.downloadDirectory,
+        filenameFormat: settings.filenameFormat,
       );
 
-      if (historyItem != null) {
-        final exists = await fileExists(historyItem.filePath);
-        if (exists) {
+      final response = await PlatformBridge.getStreamUrl(payload: payload);
+
+      if (response['success'] == true) {
+        final streamUrl = response['stream_url'] as String?;
+        final lyrics = response['lyrics_lrc'] as String?;
+
+        if (streamUrl != null && streamUrl.isNotEmpty) {
           await ref
               .read(playbackProvider.notifier)
               .playLocalPath(
-                path: historyItem.filePath,
+                path: track.id, // Using Spotify ID as identifier
                 title: track.name,
                 artist: track.artistName,
                 album: track.albumName,
                 coverUrl: track.coverUrl ?? '',
+                streamUrl: streamUrl,
+                lyricsUrl: lyrics,
+                track: track,
               );
-          return true;
+        } else {
+          _downloadTrack(track);
         }
-        historyNotifier.removeFromHistory(historyItem.id);
-      }
-
-      var localItem = (isrc != null && isrc.isNotEmpty)
-          ? localState.getByIsrc(isrc)
-          : null;
-      localItem ??= localState.findByTrackAndArtist(
-        track.name,
-        track.artistName,
-      );
-
-      if (localItem != null && await fileExists(localItem.filePath)) {
-        await ref
-            .read(playbackProvider.notifier)
-            .playLocalPath(
-              path: localItem.filePath,
-              title: localItem.trackName,
-              artist: localItem.artistName,
-              album: localItem.albumName,
-              coverUrl: localItem.coverPath ?? track.coverUrl ?? '',
-            );
-        return true;
+      } else {
+        _downloadTrack(track);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.snackbarCannotOpenFile('$e'))),
-        );
-      }
-      return true;
+      _downloadTrack(track);
+    } finally {
+      if (mounted) setState(() => _loadingStreamRanks.remove(rank));
     }
-
-    return false;
   }
 
   void _downloadTrack(Track track) {

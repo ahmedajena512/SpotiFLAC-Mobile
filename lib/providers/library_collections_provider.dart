@@ -22,17 +22,20 @@ class CollectionTrackEntry {
   final String key;
   final Track track;
   final DateTime addedAt;
+  final String? filePath;
 
   const CollectionTrackEntry({
     required this.key,
     required this.track,
     required this.addedAt,
+    this.filePath,
   });
 
   Map<String, dynamic> toJson() => {
     'key': key,
     'track': track.toJson(),
     'addedAt': addedAt.toIso8601String(),
+    if (filePath != null) 'filePath': filePath,
   };
 
   factory CollectionTrackEntry.fromJson(Map<String, dynamic> json) {
@@ -41,6 +44,7 @@ class CollectionTrackEntry {
       key: json['key'] as String,
       track: Track.fromJson(Map<String, dynamic>.from(json['track'] as Map)),
       addedAt: DateTime.tryParse(addedAtRaw ?? '') ?? DateTime.now(),
+      filePath: json['filePath'] as String?,
     );
   }
 }

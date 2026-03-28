@@ -135,8 +135,9 @@ class _LibrarySettingsPageState extends ConsumerState<LibrarySettingsPage> {
         if (Platform.isIOS) {
           // On iOS, create a security-scoped bookmark so we can access
           // this folder across app restarts and from the Go backend.
-          final bookmark =
-              await PlatformBridge.createIosBookmarkFromPath(result);
+          final bookmark = await PlatformBridge.createIosBookmarkFromPath(
+            result,
+          );
           if (bookmark != null && bookmark.isNotEmpty) {
             ref
                 .read(settingsProvider.notifier)
@@ -182,11 +183,13 @@ class _LibrarySettingsPageState extends ConsumerState<LibrarySettingsPage> {
       return;
     }
 
-    await ref.read(localLibraryProvider.notifier).startScan(
-      libraryPath,
-      forceFullScan: forceFullScan,
-      iosBookmark: iosBookmark.isNotEmpty ? iosBookmark : null,
-    );
+    await ref
+        .read(localLibraryProvider.notifier)
+        .startScan(
+          libraryPath,
+          forceFullScan: forceFullScan,
+          iosBookmark: iosBookmark.isNotEmpty ? iosBookmark : null,
+        );
   }
 
   Future<void> _cancelScan() async {

@@ -1,5 +1,4 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Generated.xcconfig"
-
-// Go backend framework (Gobackend.xcframework)
-FRAMEWORK_SEARCH_PATHS=$(inherited) $(PROJECT_DIR)/Frameworks
+FRAMEWORK_SEARCH_PATHS=$(inherited) $(PROJECT_DIR)/Frameworks/Gobackend.xcframework/ios-arm64_x86_64-simulator
 OTHER_LDFLAGS=$(inherited) -framework Gobackend

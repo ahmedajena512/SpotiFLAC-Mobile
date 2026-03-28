@@ -4,9 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotiflac_android/l10n/l10n.dart';
 import 'package:spotiflac_android/models/track.dart';
 import 'package:spotiflac_android/providers/library_collections_provider.dart';
+import 'package:spotiflac_android/providers/download_queue_provider.dart';
+import 'package:spotiflac_android/providers/settings_provider.dart';
 import 'package:spotiflac_android/services/cover_cache_manager.dart';
 import 'package:spotiflac_android/widgets/playlist_picker_sheet.dart';
+import 'package:spotiflac_android/widgets/download_service_picker.dart';
+import 'package:spotiflac_android/screens/album_screen.dart';
 import 'package:spotiflac_android/utils/clickable_metadata.dart';
+import 'package:spotiflac_android/screens/track_metadata_screen.dart';
+import 'package:spotiflac_android/providers/local_library_provider.dart';
+import 'package:spotiflac_android/services/library_database.dart';
 
 class TrackCollectionQuickActions extends ConsumerWidget {
   final Track track;
@@ -222,6 +229,104 @@ class _TrackOptionsSheet extends ConsumerWidget {
                 onTap: () {
                   Navigator.pop(context);
                   showAddTrackToPlaylistSheet(context, ref, track);
+                },
+              ),
+              // Download option — for tracks from online sources
+              _OptionTile(
+                icon: Icons.download_rounded,
+                title: 'Download',
+                onTap: () {
+                  Navigator.pop(context);
+                  final settings = ref.read(settingsProvider);
+                  if (settings.askQualityBeforeDownload) {
+                    DownloadServicePicker.show(
+                      context,
+                      trackName: track.name,
+                      artistName: track.artistName,
+                      coverUrl: track.coverUrl,
+                      onSelect: (quality, service) {
+                        ref.read(downloadQueueProvider.notifier).addToQueue(track, service, qualityOverride: quality);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Added "${track.name}" to download queue')),
+                          );
+                        }
+                      },
+                    );
+                  } else {
+                    ref.read(downloadQueueProvider.notifier).addToQueue(track, settings.defaultService);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Added "${track.name}" to download queue')),
+                    );
+                  }
+                },
+              ),
+              // View Album option
+              if (track.albumId != null && track.albumId!.isNotEmpty)
+                _OptionTile(
+                  icon: Icons.album,
+                  title: 'View Album',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AlbumScreen(
+                          albumId: track.albumId!,
+                          albumName: track.albumName,
+                          coverUrl: track.coverUrl,
+                          extensionId: track.source,
+                          artistId: track.artistId,
+                          artistName: track.artistName,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+              // Song Info Option
+              _OptionTile(
+                icon: Icons.info_outline,
+                title: 'Song Info',
+                onTap: () async {
+                  Navigator.pop(context);
+                  final historyState = ref.read(downloadHistoryProvider);
+                  var historyItem = historyState.getBySpotifyId(track.id);
+                  if (historyItem == null && track.isrc != null && track.isrc!.isNotEmpty) {
+                    historyItem = historyState.getByIsrc(track.isrc!);
+                  }
+                  historyItem ??= historyState.findByTrackAndArtist(track.name, track.artistName);
+
+                  if (historyItem != null) {
+                    await Navigator.of(context).push(
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) => TrackMetadataScreen(item: historyItem),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
+                      ),
+                    );
+                    return;
+                  }
+
+                  final localState = ref.read(localLibraryProvider);
+                  LocalLibraryItem? localItem;
+                  if (track.isrc != null && track.isrc!.isNotEmpty) {
+                    localItem = localState.getByIsrc(track.isrc!);
+                  }
+                  localItem ??= localState.findByTrackAndArtist(track.name, track.artistName);
+
+                  if (localItem != null) {
+                    await Navigator.of(context).push(
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) => TrackMetadataScreen(localItem: localItem),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
+                      ),
+                    );
+                    return;
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Detailed info is only available for downloaded or library tracks')),
+                  );
                 },
               ),
 

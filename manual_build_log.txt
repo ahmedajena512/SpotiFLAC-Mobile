@@ -1,0 +1,15 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Debug -sdk iphonesimulator build
+
+Build settings from command line:
+    SDKROOT = iphonesimulator26.0
+
+2026-03-16 02:36:28.305 xcodebuild[70083:24243562] Error Domain=NSCocoaErrorDomain Code=3840 "JSON text did not start with array or object and option to allow fragments not set. around line 1, column 0." UserInfo={NSDebugDescription=JSON text did not start with array or object and option to allow fragments not set. around line 1, column 0., NSJSONSerializationErrorIndex=0}
+2026-03-16 02:36:28.307 xcodebuild[70083:24243562] [MT] IDEFileReferenceDebug: [Load] <IDEFileReference, 0xbddd5d2c0: name:Runner path:group:Runner.xcodeproj> Failed to load container at path: /Users/mac1/Downloads/TEST-FLAC/SpotiFLAC-Mobile/ios/Runner.xcodeproj, Error: Error Domain=Xcode3ProjectErrorDomain Code=2 "The project ‘Runner’ is damaged and cannot be opened due to a parse error. Examine the project file for invalid edits or unresolved source control conflicts.
+
+Path: /Users/mac1/Downloads/TEST-FLAC/SpotiFLAC-Mobile/ios/Runner.xcodeproj" UserInfo={NSLocalizedDescription=The project ‘Runner’ is damaged and cannot be opened due to a parse error. Examine the project file for invalid edits or unresolved source control conflicts.
+
+Path: /Users/mac1/Downloads/TEST-FLAC/SpotiFLAC-Mobile/ios/Runner.xcodeproj}
+--- xcodebuild: WARNING: Unable to open project file '/Users/mac1/Downloads/TEST-FLAC/SpotiFLAC-Mobile/ios/Runner.xcodeproj' in workspace 'ios/Runner.xcworkspace'.
+2026-03-16 02:36:28.896 xcodebuild[70083:24243562] Writing error result bundle to /var/folders/yz/nd5xt4kd7bqcm7kh6grs58lw0000gn/T/ResultBundle_2026-16-03_02-36-0028.xcresult
+xcodebuild: error: The workspace named "Runner" does not contain a scheme named "Runner". The "-list" option can be used to find the names of the schemes in the workspace.

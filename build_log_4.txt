@@ -1,0 +1,1215 @@
+[  +20 ms] executing: sysctl hw.optional.arm64
+[   +4 ms] Exit code 0 from: sysctl hw.optional.arm64
+[        ] hw.optional.arm64: 1
+[   +4 ms] Artifact Instance of 'MaterialFonts' is not required, skipping update.
+[        ] Artifact Instance of 'GradleWrapper' is not required, skipping update.
+[        ] Artifact Instance of 'AndroidGenSnapshotArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'AndroidInternalBuildArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterWebSdk' is not required, skipping update.
+[        ] Artifact Instance of 'LegacyCanvasKitRemover' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterSdk' is not required, skipping update.
+[        ] Artifact Instance of 'WindowsEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerDebugSymbols' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FontSubsetArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'PubDependencies' is not required, skipping update.
+[        ] executing: [/Users/mac1/development/flutter/] git -c log.showSignature=false log HEAD -n 1 --pretty=format:%ad --date=iso
+[  +17 ms] Exit code 0 from: git -c log.showSignature=false log HEAD -n 1 --pretty=format:%ad --date=iso
+[        ] 2025-12-11 11:50:07 -0500
+[  +29 ms] executing: sysctl hw.optional.arm64
+[   +3 ms] Exit code 0 from: sysctl hw.optional.arm64
+[        ] hw.optional.arm64: 1
+[        ] executing: /usr/bin/arch -arm64e xcrun xcodebuild -version
+[ +222 ms] Exit code 0 from: /usr/bin/arch -arm64e xcrun xcodebuild -version
+[        ] Xcode 26.0.1
+           Build version 17A400
+[        ] executing: /usr/bin/arch -arm64e xcrun xcdevice list --timeout 5
+[   +2 ms] Artifact Instance of 'AndroidGenSnapshotArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'AndroidInternalBuildArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterWebSdk' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterEngineStamp' is not required, skipping update.
+[        ] Artifact Instance of 'LegacyCanvasKitRemover' is not required, skipping update.
+[   +1 ms] Artifact Instance of 'WindowsEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerDebugSymbols' is not required, skipping update.
+[  +22 ms] executing: /Users/mac1/Library/Android/sdk/platform-tools/adb devices -l
+[        ] executing: /usr/bin/arch -arm64e xcrun xcdevice list --timeout 2
+[        ] executing: /usr/bin/arch -arm64e xcrun simctl list devices booted
+[ +105 ms] /usr/bin/arch -arm64e xcrun simctl list devices booted iOS --json
+[        ] executing: /usr/bin/arch -arm64e xcrun simctl list devices booted iOS --json
+[  +20 ms] List of devices attached
+[  +91 ms] {
+             "devices" : {
+               "com.apple.CoreSimulator.SimRuntime.iOS-26-0" : [
+                 {
+                   "lastBootedAt" : "2026-03-15T23:55:42Z",
+                   "dataPath" : "\/Users\/mac1\/Library\/Developer\/CoreSimulator\/Devices\/9410EE2E-C94F-496D-B954-546CE89E1676\/data",
+                   "dataPathSize" : 1599238144,
+                   "logPath" : "\/Users\/mac1\/Library\/Logs\/CoreSimulator\/9410EE2E-C94F-496D-B954-546CE89E1676",
+                   "udid" : "9410EE2E-C94F-496D-B954-546CE89E1676",
+                   "isAvailable" : true,
+                   "logPathSize" : 253952,
+                   "deviceTypeIdentifier" : "com.apple.CoreSimulator.SimDeviceType.iPhone-15-Pro",
+                   "state" : "Booted",
+                   "name" : "iPhone 15 Pro"
+                 }
+               ]
+             }
+           }
+[+2771 ms] [
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone18,1",
+               "identifier" : "EE0658D7-4B0E-4770-80C7-1BC156311F1F",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.com.apple.iphone-17-pro-2",
+               "modelName" : "iPhone 17 Pro",
+               "name" : "iPhone 17 Pro",
+               "ignored" : false
+             },
+             {
+               "ignored" : false,
+               "modelCode" : "iPhone12,5",
+               "simulator" : false,
+               "modelName" : "iPhone 11 Pro Max",
+               "error" : {
+                 "code" : -27,
+                 "failureReason" : "",
+                 "description" : "Browsing on the local area network for ‏iPhone ‏",
+                 "recoverySuggestion" : "Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.\nThe device must be opted into Developer Mode to connect wirelessly.",
+                 "domain" : "com.apple.dt.deviceprep"
+               },
+               "operatingSystemVersion" : "18.4 (22E240)",
+               "identifier" : "00008030-000834591444802E",
+               "platform" : "com.apple.platform.iphoneos",
+               "architecture" : "arm64e",
+               "interface" : "usb",
+               "available" : false,
+               "name" : "‏iPhone ‏",
+               "modelUTI" : "com.apple.iphone-11-pro-max-1"
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad16,2",
+               "identifier" : "9E34E97C-650A-4F2C-8B50-9A5C84CB2973",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-mini-a17-1",
+               "modelName" : "iPad mini (A17 Pro)",
+               "name" : "iPad mini (A17 Pro)",
+               "ignored" : false
+             },
+             {
+               "ignored" : false,
+               "modelCode" : "iPhone12,3",
+               "simulator" : false,
+               "modelName" : "iPhone 11 Pro",
+               "error" : {
+                 "code" : -27,
+                 "failureReason" : "",
+                 "description" : "Browsing on the local area network for iPhone",
+                 "recoverySuggestion" : "Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.\nThe device must be opted into Developer Mode to connect wirelessly.",
+                 "domain" : "com.apple.dt.deviceprep"
+               },
+               "operatingSystemVersion" : "18.3.2 (22D82)",
+               "identifier" : "00008030-000111362189802E",
+               "platform" : "com.apple.platform.iphoneos",
+               "architecture" : "arm64e",
+               "interface" : "usb",
+               "available" : false,
+               "name" : "iPhone",
+               "modelUTI" : "com.apple.iphone-11-pro-1"
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone18,2",
+               "identifier" : "BA30751C-84BA-420C-AFC5-17AC4397997C",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.com.apple.iphone-17-pro-max-2",
+               "modelName" : "iPhone 17 Pro Max",
+               "name" : "iPhone 17 Pro Max",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad15,5",
+               "identifier" : "65494A9E-FE37-4762-8B20-6C44CFDAE2A9",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-air-m3-13-1",
+               "modelName" : "iPad Air 13-inch (M3)",
+               "name" : "iPad Air 13-inch (M3)",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad15,3",
+               "identifier" : "561EC7DA-BE8E-44A5-970F-CD0ADF4B7A39",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-air-m3-1",
+               "modelName" : "iPad Air 11-inch (M3)",
+               "name" : "iPad Air 11-inch (M3)",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone18,4",
+               "identifier" : "5ED552E6-F83D-4D33-89A3-B4AA3C841C02",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.com.apple.iphone-air-1",
+               "modelName" : "iPhone Air",
+               "name" : "iPhone Air",
+               "ignored" : false
+             },
+             {
+               "ignored" : false,
+               "modelCode" : "iPhone16,1",
+               "simulator" : false,
+               "modelName" : "iPhone 15 Pro",
+               "error" : {
+                 "code" : -27,
+                 "failureReason" : "",
+                 "description" : "Browsing on the local area network for iPhone15 Pro",
+                 "recoverySuggestion" : "Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.\nThe device must be opted into Developer Mode to connect wirelessly.",
+                 "domain" : "com.apple.dt.deviceprep"
+               },
+               "operatingSystemVersion" : "26.0.1 (23A355)",
+               "identifier" : "00008130-000A155A0C12001C",
+               "platform" : "com.apple.platform.iphoneos",
+               "architecture" : "arm64e",
+               "interface" : "usb",
+               "available" : false,
+               "name" : "iPhone15 Pro",
+               "modelUTI" : "com.apple.iphone-15-pro-1"
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone16,1",
+               "identifier" : "9410EE2E-C94F-496D-B954-546CE89E1676",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.iphone-15-pro-1",
+               "modelName" : "iPhone 15 Pro",
+               "name" : "iPhone 15 Pro",
+               "ignored" : false
+             },
+             {
+               "ignored" : false,
+               "modelCode" : "Mac14,3",
+               "simulator" : false,
+               "modelName" : "Mac mini",
+               "operatingSystemVersion" : "26.0.1 (25A362)",
+               "identifier" : "00008112-001609EE222A201E",
+               "platform" : "com.apple.platform.macosx",
+               "architecture" : "arm64e",
+               "interface" : "usb",
+               "available" : true,
+               "name" : "My Mac",
+               "modelUTI" : "com.apple.macmini-2023"
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone18,3",
+               "identifier" : "ABACBD16-F7CD-4965-B76A-D51EEA521C74",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.com.apple.iphone-17-2",
+               "modelName" : "iPhone 17",
+               "name" : "iPhone 17",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone17,5",
+               "identifier" : "81776E55-84E3-4C40-ACF7-9650C944F5EB",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.iphone-16-e-1",
+               "modelName" : "iPhone 16e",
+               "name" : "iPhone 16e",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad15,7",
+               "identifier" : "B83CA2FF-4958-4123-94B0-CA67AEDF2F88",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-a16-1",
+               "modelName" : "iPad (A16)",
+               "name" : "iPad (A16)",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad16,4",
+               "identifier" : "F8FAE411-2BF1-475D-8FE7-BF6417792A90",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-pro-m4-1",
+               "modelName" : "iPad Pro 11-inch (M4)",
+               "name" : "iPad Pro 11-inch (M4)",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad16,6",
+               "identifier" : "32B1FF6E-FF65-4DFE-BA6C-AFC1455B2C47",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-pro-m4-13-1",
+               "modelName" : "iPad Pro 13-inch (M4)",
+               "name" : "iPad Pro 13-inch (M4)",
+               "ignored" : false
+             }
+           ]
+[   +2 ms] executing: /usr/bin/arch -arm64e xcrun devicectl --version
+[  +61 ms] executing: /usr/bin/arch -arm64e xcrun devicectl list devices --timeout 5 --json-output /var/folders/yz/nd5xt4kd7bqcm7kh6grs58lw0000gn/T/flutter_tools.jhVUM6/core_devices.HKNilG/core_device_list.json
+[  +58 ms] Name           Hostname                        Identifier                             State         Model                         
+           ------------   -----------------------------   ------------------------------------   -----------   ------------------------------
+           iPhone         iPhone.coredevice.local         D274F556-13A3-5911-AC60-FDF883C93144   unavailable   iPhone 11 Pro (iPhone12,3)    
+           iPhone15 Pro   iPhone15-Pro.coredevice.local   1AAB3A37-55C5-549C-B712-5193BDC45549   unavailable   iPhone 15 Pro (iPhone16,1)    
+           ‏iPhone ‏      iPhone-.coredevice.local        5A6A6942-99E9-5E85-B63E-48223C73F39B   unavailable   iPhone 11 Pro Max (iPhone12,5)
+[        ] {
+             "info" : {
+               "arguments" : [
+                 "devicectl",
+                 "list",
+                 "devices",
+                 "--timeout",
+                 "5",
+                 "--json-output",
+                 "/var/folders/yz/nd5xt4kd7bqcm7kh6grs58lw0000gn/T/flutter_tools.jhVUM6/core_devices.HKNilG/core_device_list.json"
+               ],
+               "commandType" : "devicectl.list.devices",
+               "environment" : {
+                 "TERM" : "xterm-256color"
+               },
+               "jsonVersion" : 2,
+               "outcome" : "success",
+               "version" : "477.30"
+             },
+             "result" : {
+               "devices" : [
+                 {
+                   "capabilities" : [
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.tags",
+                       "name" : "Modify Tags"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.default.user.credentials",
+                       "name" : "Modify credentials for default users for a device"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.unpairdevice",
+                       "name" : "Unpair Device"
+                     }
+                   ],
+                   "connectionProperties" : {
+                     "authenticationType" : "manualPairing",
+                     "isMobileDeviceOnly" : false,
+                     "lastConnectionDate" : "2025-10-31T15:10:25.685Z",
+                     "pairingState" : "paired",
+                     "potentialHostnames" : [
+                       "iPhone.coredevice.local",
+                       "D274F556-13A3-5911-AC60-FDF883C93144.coredevice.local",
+                       "00008030-000111362189802E.coredevice.local"
+                     ],
+                     "tunnelState" : "unavailable"
+                   },
+                   "deviceProperties" : {
+                     "bootedFromSnapshot" : true,
+                     "bootedSnapshotName" : "com.apple.os.update-871CF5FD60DEA9B1AFB6A03FE79ED3055689EE40C5FF53D8DC754685699A5E10",
+                     "ddiServicesAvailable" : false,
+                     "developerModeStatus" : "enabled",
+                     "hasInternalOSBuild" : false,
+                     "name" : "iPhone",
+                     "osBuildUpdate" : "22D82",
+                     "osVersionNumber" : "18.3.2",
+                     "rootFileSystemIsWritable" : false,
+                     "supportsCheckedAllocations" : false
+                   },
+                   "hardwareProperties" : {
+                     "cpuType" : {
+                       "name" : "arm64e",
+                       "subType" : 2,
+                       "type" : 16777228
+                     },
+                     "deviceType" : "iPhone",
+                     "ecid" : 300399165276206,
+                     "hardwareModel" : "D421AP",
+                     "internalStorageCapacity" : 64000000000,
+                     "isProductionFused" : true,
+                     "marketingName" : "iPhone 11 Pro",
+                     "platform" : "iOS",
+                     "productType" : "iPhone12,3",
+                     "reality" : "physical",
+                     "serialNumber" : "C39CF1ZRN6Y3",
+                     "supportedCPUTypes" : [
+                       {
+                         "name" : "arm64e",
+                         "subType" : 2,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64",
+                         "subType" : 0,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64",
+                         "subType" : 1,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64_32",
+                         "subType" : 1,
+                         "type" : 33554444
+                       }
+                     ],
+                     "supportedDeviceFamilies" : [
+                       1
+                     ],
+                     "thinningProductType" : "iPhone12,3",
+                     "udid" : "00008030-000111362189802E"
+                   },
+                   "identifier" : "D274F556-13A3-5911-AC60-FDF883C93144",
+                   "tags" : [
+
+                   ],
+                   "visibilityClass" : "default"
+                 },
+                 {
+                   "capabilities" : [
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.tags",
+                       "name" : "Modify Tags"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.default.user.credentials",
+                       "name" : "Modify credentials for default users for a device"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.unpairdevice",
+                       "name" : "Unpair Device"
+                     }
+                   ],
+                   "connectionProperties" : {
+                     "authenticationType" : "manualPairing",
+                     "isMobileDeviceOnly" : false,
+                     "lastConnectionDate" : "2025-10-31T15:27:33.844Z",
+                     "pairingState" : "paired",
+                     "potentialHostnames" : [
+                       "iPhone15-Pro.coredevice.local",
+                       "1AAB3A37-55C5-549C-B712-5193BDC45549.coredevice.local",
+                       "00008130-000A155A0C12001C.coredevice.local"
+                     ],
+                     "tunnelState" : "unavailable"
+                   },
+                   "deviceProperties" : {
+                     "bootedFromSnapshot" : true,
+                     "bootedSnapshotName" : "com.apple.os.update-44F2D3F217C7DF3E40BB625FD95EF2A8B29E6AA02CEAA8301DAEC3C7AACAE20E",
+                     "ddiServicesAvailable" : false,
+                     "developerModeStatus" : "enabled",
+                     "hasInternalOSBuild" : false,
+                     "name" : "iPhone15 Pro",
+                     "osBuildUpdate" : "23A355",
+                     "osVersionNumber" : "26.0.1",
+                     "rootFileSystemIsWritable" : false,
+                     "supportsCheckedAllocations" : false
+                   },
+                   "hardwareProperties" : {
+                     "cpuType" : {
+                       "name" : "arm64e",
+                       "subType" : 2,
+                       "type" : 16777228
+                     },
+                     "deviceType" : "iPhone",
+                     "ecid" : 2838226260852764,
+                     "hardwareModel" : "D83AP",
+                     "internalStorageCapacity" : 256000000000,
+                     "isProductionFused" : true,
+                     "marketingName" : "iPhone 15 Pro",
+                     "platform" : "iOS",
+                     "productType" : "iPhone16,1",
+                     "reality" : "physical",
+                     "serialNumber" : "JC9GC9GXRW",
+                     "supportedCPUTypes" : [
+                       {
+                         "name" : "arm64e",
+                         "subType" : 2,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64",
+                         "subType" : 0,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64",
+                         "subType" : 1,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64_32",
+                         "subType" : 1,
+                         "type" : 33554444
+                       }
+                     ],
+                     "supportedDeviceFamilies" : [
+                       1
+                     ],
+                     "thinningProductType" : "iPhone16,1",
+                     "udid" : "00008130-000A155A0C12001C"
+                   },
+                   "identifier" : "1AAB3A37-55C5-549C-B712-5193BDC45549",
+                   "tags" : [
+
+                   ],
+                   "visibilityClass" : "default"
+                 },
+                 {
+                   "capabilities" : [
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.tags",
+                       "name" : "Modify Tags"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.default.user.credentials",
+                       "name" : "Modify credentials for default users for a device"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.unpairdevice",
+                       "name" : "Unpair Device"
+                     }
+                   ],
+                   "connectionProperties" : {
+                     "authenticationType" : "manualPairing",
+                     "isMobileDeviceOnly" : false,
+                     "lastConnectionDate" : "2025-10-16T18:59:12.541Z",
+                     "pairingState" : "paired",
+                     "potentialHostnames" : [
+                       "iPhone-.coredevice.local",
+                       "5A6A6942-99E9-5E85-B63E-48223C73F39B.coredevice.local",
+                       "00008030-000834591444802E.coredevice.local"
+                     ],
+                     "tunnelState" : "unavailable"
+                   },
+                   "deviceProperties" : {
+                     "bootedFromSnapshot" : true,
+                     "bootedSnapshotName" : "com.apple.os.update-B7917CD60D58B7B791787B4B44E1B4A9D1263C7CA9BDC36EAB0414C42B0043BA",
+                     "ddiServicesAvailable" : false,
+                     "developerModeStatus" : "enabled",
+                     "hasInternalOSBuild" : false,
+                     "name" : "‏iPhone ‏",
+                     "osBuildUpdate" : "22E240",
+                     "osVersionNumber" : "18.4",
+                     "rootFileSystemIsWritable" : false,
+                     "supportsCheckedAllocations" : false
+                   },
+                   "hardwareProperties" : {
+                     "cpuType" : {
+                       "name" : "arm64e",
+                       "subType" : 2,
+                       "type" : 16777228
+                     },
+                     "deviceType" : "iPhone",
+                     "ecid" : 2309357010452526,
+                     "hardwareModel" : "D431AP",
+                     "internalStorageCapacity" : 256000000000,
+                     "isProductionFused" : true,
+                     "marketingName" : "iPhone 11 Pro Max",
+                     "platform" : "iOS",
+                     "productType" : "iPhone12,5",
+                     "reality" : "physical",
+                     "serialNumber" : "H0CGC11AN70L",
+                     "supportedCPUTypes" : [
+                       {
+                         "name" : "arm64e",
+                         "subType" : 2,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64",
+                         "subType" : 0,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "armv8",
+                         "subType" : 13,
+                         "type" : 12
+                       }
+                     ],
+                     "supportedDeviceFamilies" : [
+                       1
+                     ],
+                     "thinningProductType" : "iPhone12,5",
+                     "udid" : "00008030-000834591444802E"
+                   },
+                   "identifier" : "5A6A6942-99E9-5E85-B63E-48223C73F39B",
+                   "tags" : [
+
+                   ],
+                   "visibilityClass" : "default"
+                 }
+               ]
+             }
+           }
+
+[   +3 ms] Error: Browsing on the local area network for ‏iPhone ‏. Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.
+           The device must be opted into Developer Mode to connect wirelessly. (code -27)
+[   +1 ms] Error: Browsing on the local area network for iPhone. Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.
+           The device must be opted into Developer Mode to connect wirelessly. (code -27)
+[        ] Error: Browsing on the local area network for iPhone15 Pro. Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.
+           The device must be opted into Developer Mode to connect wirelessly. (code -27)
+[   +1 ms] Artifact Instance of 'MaterialFonts' is not required, skipping update.
+[        ] Artifact Instance of 'GradleWrapper' is not required, skipping update.
+[        ] Artifact Instance of 'AndroidGenSnapshotArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'AndroidInternalBuildArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterWebSdk' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterEngineStamp' is not required, skipping update.
+[        ] Artifact Instance of 'LegacyCanvasKitRemover' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterSdk' is not required, skipping update.
+[        ] Artifact Instance of 'WindowsEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxEngineArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'LinuxFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'MacOSFuchsiaSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerSDKArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FlutterRunnerDebugSymbols' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'IosUsbArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'FontSubsetArtifacts' is not required, skipping update.
+[        ] Artifact Instance of 'PubDependencies' is not required, skipping update.
+[   +9 ms] No devices found yet. Checking for wireless devices...
+[+2854 ms] [
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone18,1",
+               "identifier" : "EE0658D7-4B0E-4770-80C7-1BC156311F1F",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.com.apple.iphone-17-pro-2",
+               "modelName" : "iPhone 17 Pro",
+               "name" : "iPhone 17 Pro",
+               "ignored" : false
+             },
+             {
+               "ignored" : false,
+               "modelCode" : "iPhone12,5",
+               "simulator" : false,
+               "modelName" : "iPhone 11 Pro Max",
+               "error" : {
+                 "code" : -27,
+                 "failureReason" : "",
+                 "description" : "Browsing on the local area network for ‏iPhone ‏",
+                 "recoverySuggestion" : "Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.\nThe device must be opted into Developer Mode to connect wirelessly.",
+                 "domain" : "com.apple.dt.deviceprep"
+               },
+               "operatingSystemVersion" : "18.4 (22E240)",
+               "identifier" : "00008030-000834591444802E",
+               "platform" : "com.apple.platform.iphoneos",
+               "architecture" : "arm64e",
+               "interface" : "usb",
+               "available" : false,
+               "name" : "‏iPhone ‏",
+               "modelUTI" : "com.apple.iphone-11-pro-max-1"
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad16,2",
+               "identifier" : "9E34E97C-650A-4F2C-8B50-9A5C84CB2973",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-mini-a17-1",
+               "modelName" : "iPad mini (A17 Pro)",
+               "name" : "iPad mini (A17 Pro)",
+               "ignored" : false
+             },
+             {
+               "ignored" : false,
+               "modelCode" : "iPhone12,3",
+               "simulator" : false,
+               "modelName" : "iPhone 11 Pro",
+               "error" : {
+                 "code" : -27,
+                 "failureReason" : "",
+                 "description" : "Browsing on the local area network for iPhone",
+                 "recoverySuggestion" : "Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.\nThe device must be opted into Developer Mode to connect wirelessly.",
+                 "domain" : "com.apple.dt.deviceprep"
+               },
+               "operatingSystemVersion" : "18.3.2 (22D82)",
+               "identifier" : "00008030-000111362189802E",
+               "platform" : "com.apple.platform.iphoneos",
+               "architecture" : "arm64e",
+               "interface" : "usb",
+               "available" : false,
+               "name" : "iPhone",
+               "modelUTI" : "com.apple.iphone-11-pro-1"
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone18,2",
+               "identifier" : "BA30751C-84BA-420C-AFC5-17AC4397997C",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.com.apple.iphone-17-pro-max-2",
+               "modelName" : "iPhone 17 Pro Max",
+               "name" : "iPhone 17 Pro Max",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad15,5",
+               "identifier" : "65494A9E-FE37-4762-8B20-6C44CFDAE2A9",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-air-m3-13-1",
+               "modelName" : "iPad Air 13-inch (M3)",
+               "name" : "iPad Air 13-inch (M3)",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad15,3",
+               "identifier" : "561EC7DA-BE8E-44A5-970F-CD0ADF4B7A39",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-air-m3-1",
+               "modelName" : "iPad Air 11-inch (M3)",
+               "name" : "iPad Air 11-inch (M3)",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone18,4",
+               "identifier" : "5ED552E6-F83D-4D33-89A3-B4AA3C841C02",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.com.apple.iphone-air-1",
+               "modelName" : "iPhone Air",
+               "name" : "iPhone Air",
+               "ignored" : false
+             },
+             {
+               "ignored" : false,
+               "modelCode" : "iPhone16,1",
+               "simulator" : false,
+               "modelName" : "iPhone 15 Pro",
+               "error" : {
+                 "code" : -27,
+                 "failureReason" : "",
+                 "description" : "Browsing on the local area network for iPhone15 Pro",
+                 "recoverySuggestion" : "Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.\nThe device must be opted into Developer Mode to connect wirelessly.",
+                 "domain" : "com.apple.dt.deviceprep"
+               },
+               "operatingSystemVersion" : "26.0.1 (23A355)",
+               "identifier" : "00008130-000A155A0C12001C",
+               "platform" : "com.apple.platform.iphoneos",
+               "architecture" : "arm64e",
+               "interface" : "usb",
+               "available" : false,
+               "name" : "iPhone15 Pro",
+               "modelUTI" : "com.apple.iphone-15-pro-1"
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone16,1",
+               "identifier" : "9410EE2E-C94F-496D-B954-546CE89E1676",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.iphone-15-pro-1",
+               "modelName" : "iPhone 15 Pro",
+               "name" : "iPhone 15 Pro",
+               "ignored" : false
+             },
+             {
+               "ignored" : false,
+               "modelCode" : "Mac14,3",
+               "simulator" : false,
+               "modelName" : "Mac mini",
+               "operatingSystemVersion" : "26.0.1 (25A362)",
+               "identifier" : "00008112-001609EE222A201E",
+               "platform" : "com.apple.platform.macosx",
+               "architecture" : "arm64e",
+               "interface" : "usb",
+               "available" : true,
+               "name" : "My Mac",
+               "modelUTI" : "com.apple.macmini-2023"
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone18,3",
+               "identifier" : "ABACBD16-F7CD-4965-B76A-D51EEA521C74",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.com.apple.iphone-17-2",
+               "modelName" : "iPhone 17",
+               "name" : "iPhone 17",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPhone17,5",
+               "identifier" : "81776E55-84E3-4C40-ACF7-9650C944F5EB",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.iphone-16-e-1",
+               "modelName" : "iPhone 16e",
+               "name" : "iPhone 16e",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad15,7",
+               "identifier" : "B83CA2FF-4958-4123-94B0-CA67AEDF2F88",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-a16-1",
+               "modelName" : "iPad (A16)",
+               "name" : "iPad (A16)",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad16,4",
+               "identifier" : "F8FAE411-2BF1-475D-8FE7-BF6417792A90",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-pro-m4-1",
+               "modelName" : "iPad Pro 11-inch (M4)",
+               "name" : "iPad Pro 11-inch (M4)",
+               "ignored" : false
+             },
+             {
+               "simulator" : true,
+               "operatingSystemVersion" : "26.0 (23A343)",
+               "available" : true,
+               "platform" : "com.apple.platform.iphonesimulator",
+               "modelCode" : "iPad16,6",
+               "identifier" : "32B1FF6E-FF65-4DFE-BA6C-AFC1455B2C47",
+               "architecture" : "arm64",
+               "modelUTI" : "com.apple.ipad-pro-m4-13-1",
+               "modelName" : "iPad Pro 13-inch (M4)",
+               "name" : "iPad Pro 13-inch (M4)",
+               "ignored" : false
+             }
+           ]
+[   +1 ms] executing: /usr/bin/arch -arm64e xcrun devicectl list devices --timeout 5 --json-output /var/folders/yz/nd5xt4kd7bqcm7kh6grs58lw0000gn/T/flutter_tools.jhVUM6/core_devices.WfLhzh/core_device_list.json
+[  +63 ms] Name           Hostname                        Identifier                             State         Model                         
+           ------------   -----------------------------   ------------------------------------   -----------   ------------------------------
+           iPhone         iPhone.coredevice.local         D274F556-13A3-5911-AC60-FDF883C93144   unavailable   iPhone 11 Pro (iPhone12,3)    
+           iPhone15 Pro   iPhone15-Pro.coredevice.local   1AAB3A37-55C5-549C-B712-5193BDC45549   unavailable   iPhone 15 Pro (iPhone16,1)    
+           ‏iPhone ‏      iPhone-.coredevice.local        5A6A6942-99E9-5E85-B63E-48223C73F39B   unavailable   iPhone 11 Pro Max (iPhone12,5)
+[        ] {
+             "info" : {
+               "arguments" : [
+                 "devicectl",
+                 "list",
+                 "devices",
+                 "--timeout",
+                 "5",
+                 "--json-output",
+                 "/var/folders/yz/nd5xt4kd7bqcm7kh6grs58lw0000gn/T/flutter_tools.jhVUM6/core_devices.WfLhzh/core_device_list.json"
+               ],
+               "commandType" : "devicectl.list.devices",
+               "environment" : {
+                 "TERM" : "xterm-256color"
+               },
+               "jsonVersion" : 2,
+               "outcome" : "success",
+               "version" : "477.30"
+             },
+             "result" : {
+               "devices" : [
+                 {
+                   "capabilities" : [
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.tags",
+                       "name" : "Modify Tags"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.default.user.credentials",
+                       "name" : "Modify credentials for default users for a device"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.unpairdevice",
+                       "name" : "Unpair Device"
+                     }
+                   ],
+                   "connectionProperties" : {
+                     "authenticationType" : "manualPairing",
+                     "isMobileDeviceOnly" : false,
+                     "lastConnectionDate" : "2025-10-31T15:10:25.685Z",
+                     "pairingState" : "paired",
+                     "potentialHostnames" : [
+                       "iPhone.coredevice.local",
+                       "D274F556-13A3-5911-AC60-FDF883C93144.coredevice.local",
+                       "00008030-000111362189802E.coredevice.local"
+                     ],
+                     "tunnelState" : "unavailable"
+                   },
+                   "deviceProperties" : {
+                     "bootedFromSnapshot" : true,
+                     "bootedSnapshotName" : "com.apple.os.update-871CF5FD60DEA9B1AFB6A03FE79ED3055689EE40C5FF53D8DC754685699A5E10",
+                     "ddiServicesAvailable" : false,
+                     "developerModeStatus" : "enabled",
+                     "hasInternalOSBuild" : false,
+                     "name" : "iPhone",
+                     "osBuildUpdate" : "22D82",
+                     "osVersionNumber" : "18.3.2",
+                     "rootFileSystemIsWritable" : false,
+                     "supportsCheckedAllocations" : false
+                   },
+                   "hardwareProperties" : {
+                     "cpuType" : {
+                       "name" : "arm64e",
+                       "subType" : 2,
+                       "type" : 16777228
+                     },
+                     "deviceType" : "iPhone",
+                     "ecid" : 300399165276206,
+                     "hardwareModel" : "D421AP",
+                     "internalStorageCapacity" : 64000000000,
+                     "isProductionFused" : true,
+                     "marketingName" : "iPhone 11 Pro",
+                     "platform" : "iOS",
+                     "productType" : "iPhone12,3",
+                     "reality" : "physical",
+                     "serialNumber" : "C39CF1ZRN6Y3",
+                     "supportedCPUTypes" : [
+                       {
+                         "name" : "arm64e",
+                         "subType" : 2,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64",
+                         "subType" : 0,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64",
+                         "subType" : 1,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64_32",
+                         "subType" : 1,
+                         "type" : 33554444
+                       }
+                     ],
+                     "supportedDeviceFamilies" : [
+                       1
+                     ],
+                     "thinningProductType" : "iPhone12,3",
+                     "udid" : "00008030-000111362189802E"
+                   },
+                   "identifier" : "D274F556-13A3-5911-AC60-FDF883C93144",
+                   "tags" : [
+
+                   ],
+                   "visibilityClass" : "default"
+                 },
+                 {
+                   "capabilities" : [
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.tags",
+                       "name" : "Modify Tags"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.default.user.credentials",
+                       "name" : "Modify credentials for default users for a device"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.unpairdevice",
+                       "name" : "Unpair Device"
+                     }
+                   ],
+                   "connectionProperties" : {
+                     "authenticationType" : "manualPairing",
+                     "isMobileDeviceOnly" : false,
+                     "lastConnectionDate" : "2025-10-31T15:27:33.844Z",
+                     "pairingState" : "paired",
+                     "potentialHostnames" : [
+                       "iPhone15-Pro.coredevice.local",
+                       "1AAB3A37-55C5-549C-B712-5193BDC45549.coredevice.local",
+                       "00008130-000A155A0C12001C.coredevice.local"
+                     ],
+                     "tunnelState" : "unavailable"
+                   },
+                   "deviceProperties" : {
+                     "bootedFromSnapshot" : true,
+                     "bootedSnapshotName" : "com.apple.os.update-44F2D3F217C7DF3E40BB625FD95EF2A8B29E6AA02CEAA8301DAEC3C7AACAE20E",
+                     "ddiServicesAvailable" : false,
+                     "developerModeStatus" : "enabled",
+                     "hasInternalOSBuild" : false,
+                     "name" : "iPhone15 Pro",
+                     "osBuildUpdate" : "23A355",
+                     "osVersionNumber" : "26.0.1",
+                     "rootFileSystemIsWritable" : false,
+                     "supportsCheckedAllocations" : false
+                   },
+                   "hardwareProperties" : {
+                     "cpuType" : {
+                       "name" : "arm64e",
+                       "subType" : 2,
+                       "type" : 16777228
+                     },
+                     "deviceType" : "iPhone",
+                     "ecid" : 2838226260852764,
+                     "hardwareModel" : "D83AP",
+                     "internalStorageCapacity" : 256000000000,
+                     "isProductionFused" : true,
+                     "marketingName" : "iPhone 15 Pro",
+                     "platform" : "iOS",
+                     "productType" : "iPhone16,1",
+                     "reality" : "physical",
+                     "serialNumber" : "JC9GC9GXRW",
+                     "supportedCPUTypes" : [
+                       {
+                         "name" : "arm64e",
+                         "subType" : 2,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64",
+                         "subType" : 0,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64",
+                         "subType" : 1,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64_32",
+                         "subType" : 1,
+                         "type" : 33554444
+                       }
+                     ],
+                     "supportedDeviceFamilies" : [
+                       1
+                     ],
+                     "thinningProductType" : "iPhone16,1",
+                     "udid" : "00008130-000A155A0C12001C"
+                   },
+                   "identifier" : "1AAB3A37-55C5-549C-B712-5193BDC45549",
+                   "tags" : [
+
+                   ],
+                   "visibilityClass" : "default"
+                 },
+                 {
+                   "capabilities" : [
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.tags",
+                       "name" : "Modify Tags"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.default.user.credentials",
+                       "name" : "Modify credentials for default users for a device"
+                     },
+                     {
+                       "featureIdentifier" : "com.apple.coredevice.feature.unpairdevice",
+                       "name" : "Unpair Device"
+                     }
+                   ],
+                   "connectionProperties" : {
+                     "authenticationType" : "manualPairing",
+                     "isMobileDeviceOnly" : false,
+                     "lastConnectionDate" : "2025-10-16T18:59:12.541Z",
+                     "pairingState" : "paired",
+                     "potentialHostnames" : [
+                       "iPhone-.coredevice.local",
+                       "5A6A6942-99E9-5E85-B63E-48223C73F39B.coredevice.local",
+                       "00008030-000834591444802E.coredevice.local"
+                     ],
+                     "tunnelState" : "unavailable"
+                   },
+                   "deviceProperties" : {
+                     "bootedFromSnapshot" : true,
+                     "bootedSnapshotName" : "com.apple.os.update-B7917CD60D58B7B791787B4B44E1B4A9D1263C7CA9BDC36EAB0414C42B0043BA",
+                     "ddiServicesAvailable" : false,
+                     "developerModeStatus" : "enabled",
+                     "hasInternalOSBuild" : false,
+                     "name" : "‏iPhone ‏",
+                     "osBuildUpdate" : "22E240",
+                     "osVersionNumber" : "18.4",
+                     "rootFileSystemIsWritable" : false,
+                     "supportsCheckedAllocations" : false
+                   },
+                   "hardwareProperties" : {
+                     "cpuType" : {
+                       "name" : "arm64e",
+                       "subType" : 2,
+                       "type" : 16777228
+                     },
+                     "deviceType" : "iPhone",
+                     "ecid" : 2309357010452526,
+                     "hardwareModel" : "D431AP",
+                     "internalStorageCapacity" : 256000000000,
+                     "isProductionFused" : true,
+                     "marketingName" : "iPhone 11 Pro Max",
+                     "platform" : "iOS",
+                     "productType" : "iPhone12,5",
+                     "reality" : "physical",
+                     "serialNumber" : "H0CGC11AN70L",
+                     "supportedCPUTypes" : [
+                       {
+                         "name" : "arm64e",
+                         "subType" : 2,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "arm64",
+                         "subType" : 0,
+                         "type" : 16777228
+                       },
+                       {
+                         "name" : "armv8",
+                         "subType" : 13,
+                         "type" : 12
+                       }
+                     ],
+                     "supportedDeviceFamilies" : [
+                       1
+                     ],
+                     "thinningProductType" : "iPhone12,5",
+                     "udid" : "00008030-000834591444802E"
+                   },
+                   "identifier" : "5A6A6942-99E9-5E85-B63E-48223C73F39B",
+                   "tags" : [
+
+                   ],
+                   "visibilityClass" : "default"
+                 }
+               ]
+             }
+           }
+
+[   +1 ms] Error: Browsing on the local area network for ‏iPhone ‏. Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.
+           The device must be opted into Developer Mode to connect wirelessly. (code -27)
+[        ] Error: Browsing on the local area network for iPhone. Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.
+           The device must be opted into Developer Mode to connect wirelessly. (code -27)
+[        ] Error: Browsing on the local area network for iPhone15 Pro. Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.
+           The device must be opted into Developer Mode to connect wirelessly. (code -27)
+[   +3 ms] No supported devices found with name or id matching 'simulator'.
+[        ] The following devices were found:
+[   +1 ms] executing: sw_vers -productName
+[  +14 ms] Exit code 0 from: sw_vers -productName
+[        ] macOS
+[        ] executing: sw_vers -productVersion
+[   +9 ms] Exit code 0 from: sw_vers -productVersion
+[        ] 26.0.1
+[        ] executing: sw_vers -buildVersion
+[   +8 ms] Exit code 0 from: sw_vers -buildVersion
+[        ] 25A362
+[        ] executing: uname -m
+[   +3 ms] Exit code 0 from: uname -m
+[        ] arm64
+[+4670 ms] iPhone 15 Pro (mobile) • 9410EE2E-C94F-496D-B954-546CE89E1676 • ios            • com.apple.CoreSimulator.SimRuntime.iOS-26-0 (simulator)
+[        ] macOS (desktop)        • macos                                • darwin-arm64   • macOS 26.0.1 25A362 darwin-arm64
+[        ] Chrome (web)           • chrome                               • web-javascript • Google Chrome 145.0.7632.160
+[   +1 ms] "flutter run" took 11,032ms.
+[  +43 ms] 
+           #0      throwToolExit (package:flutter_tools/src/base/common.dart:34:3)
+           #1      RunCommand.validateCommand (package:flutter_tools/src/commands/run.dart:661:7)
+           <asynchronous suspension>
+           #2      FlutterCommand.verifyThenRunCommand (package:flutter_tools/src/runner/flutter_command.dart:1859:5)
+           <asynchronous suspension>
+           #3      FlutterCommand.run.<anonymous closure> (package:flutter_tools/src/runner/flutter_command.dart:1559:27)
+           <asynchronous suspension>
+           #4      AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+           <asynchronous suspension>
+           #5      CommandRunner.runCommand (package:args/command_runner.dart:212:13)
+           <asynchronous suspension>
+           #6      FlutterCommandRunner.runCommand.<anonymous closure> (package:flutter_tools/src/runner/flutter_command_runner.dart:487:9)
+           <asynchronous suspension>
+           #7      AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+           <asynchronous suspension>
+           #8      FlutterCommandRunner.runCommand (package:flutter_tools/src/runner/flutter_command_runner.dart:422:5)
+           <asynchronous suspension>
+           #9      run.<anonymous closure>.<anonymous closure> (package:flutter_tools/runner.dart:104:11)
+           <asynchronous suspension>
+           #10     AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+           <asynchronous suspension>
+           #11     main (package:flutter_tools/executable.dart:103:3)
+           <asynchronous suspension>
+
+
+[        ] Running 3 shutdown hooks
+[        ] Shutdown hooks complete
+[ +232 ms] exiting with code 1

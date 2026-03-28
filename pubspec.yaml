@@ -1,7 +1,7 @@
 name: spotiflac_android
 description: Download Spotify tracks in FLAC from Tidal, Qobuz & Deezer
 publish_to: "none"
-version: 3.8.6+112
+version: 3.8.8+113
 
 environment:
   sdk: ^3.10.0
@@ -56,11 +56,29 @@ dependencies:
   logger: ^2.5.0
 
   # FFmpeg for audio conversion
-  ffmpeg_kit_flutter_new_full: ^2.0.0
+  ffmpeg_kit_flutter_minimal: 6.0.8
   open_filex: ^4.7.0
 
   # Notifications
   flutter_local_notifications: 21.0.0
+
+  # Audio Engine (native AVFoundation on iOS — works on simulator + real device)
+  just_audio: ^0.9.42
+
+  # Cupertino Icons (for Linx Music player UI)
+  cupertino_icons: ^1.0.8
+
+  # Background Audio & Lock Screen Controls
+  audio_service: ^0.18.15
+  audio_session: ^0.1.21
+
+
+
+  # Album Art Color Extraction
+  palette_generator: ^0.3.3+7
+
+  # XML Parsing (for TTML lyrics)
+  xml: ^6.6.1
 
 dev_dependencies:
   flutter_test:

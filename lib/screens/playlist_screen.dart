@@ -7,13 +7,17 @@ import 'package:spotiflac_android/l10n/l10n.dart';
 import 'package:spotiflac_android/models/track.dart';
 import 'package:spotiflac_android/providers/download_queue_provider.dart';
 import 'package:spotiflac_android/providers/library_collections_provider.dart';
-import 'package:spotiflac_android/utils/file_access.dart';
 import 'package:spotiflac_android/providers/settings_provider.dart';
 import 'package:spotiflac_android/providers/local_library_provider.dart';
 import 'package:spotiflac_android/providers/playback_provider.dart';
+import 'package:spotiflac_android/providers/library_appearance_provider.dart';
+import 'package:spotiflac_android/models/library_styles.dart';
+import 'package:spotiflac_android/widgets/library_styles/spotify_playlist_view.dart';
+import 'package:spotiflac_android/widgets/library_styles/apple_music_playlist_view.dart';
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
 import 'package:spotiflac_android/widgets/playlist_picker_sheet.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
+import 'package:spotiflac_android/services/download_request_payload.dart';
 
 class PlaylistScreen extends ConsumerStatefulWidget {
   final String playlistName;
@@ -171,6 +175,67 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final style = ref.watch(libraryAppearanceProvider).libraryStyle;
+    if (style == LibraryStyle.spotifyStyle) {
+      return SpotifyPlaylistView(
+        playlistName: _playlistName,
+        coverUrl: _highResCoverUrl(_coverUrl) ?? _coverUrl,
+        ownerName: null, // "SpotiFLAC" is fallback in view
+        tracksCount: _tracks.length,
+        isLoading: _isLoading,
+        error: _error,
+        onDownloadAll: _tracks.isEmpty ? null : () => _confirmDownloadAll(context),
+        onLoveAll: _tracks.isEmpty ? null : () => _loveAll(_tracks),
+        isLovedAll: _tracks.isNotEmpty && _tracks.every((t) => ref.watch(libraryCollectionsProvider).isLoved(t)),
+        onAddPlaylist: _tracks.isEmpty ? null : () => showAddTracksToPlaylistSheet(context, ref, _tracks, playlistNamePrefill: widget.playlistName),
+        onPlayAll: _tracks.isEmpty ? null : () => ref.read(playbackProvider.notifier).playTracks(_tracks, startIndex: 0),
+        itemCount: _tracks.length,
+        itemBuilder: (context, index) {
+          final track = _tracks[index];
+          return KeyedSubtree(
+            key: ValueKey(track.id),
+            child: _PlaylistTrackItem(
+              track: track,
+              allTracks: _tracks,
+              trackIndex: index,
+              onDownload: () => _downloadTrack(context, track),
+              isSpotifyStyle: true,
+            ),
+          );
+        },
+      );
+    }
+
+    if (style == LibraryStyle.appleMusicStyle) {
+      return AppleMusicPlaylistView(
+        playlistName: _playlistName,
+        coverUrl: _highResCoverUrl(_coverUrl) ?? _coverUrl,
+        ownerName: null,
+        tracksCount: _tracks.length,
+        isLoading: _isLoading,
+        error: _error,
+        onDownloadAll: _tracks.isEmpty ? null : () => _confirmDownloadAll(context),
+        onLoveAll: _tracks.isEmpty ? null : () => _loveAll(_tracks),
+        isLovedAll: _tracks.isNotEmpty && _tracks.every((t) => ref.watch(libraryCollectionsProvider).isLoved(t)),
+        onAddPlaylist: _tracks.isEmpty ? null : () => showAddTracksToPlaylistSheet(context, ref, _tracks, playlistNamePrefill: widget.playlistName),
+        onPlayAll: _tracks.isEmpty ? null : () => ref.read(playbackProvider.notifier).playTracks(_tracks, startIndex: 0),
+        itemCount: _tracks.length,
+        itemBuilder: (context, index) {
+          final track = _tracks[index];
+          return KeyedSubtree(
+            key: ValueKey(track.id),
+            child: _PlaylistTrackItem(
+              track: track,
+              allTracks: _tracks,
+              trackIndex: index,
+              onDownload: () => _downloadTrack(context, track),
+              isSpotifyStyle: false,
+            ),
+          );
+        },
+      );
+    }
+
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -410,7 +475,10 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
           key: ValueKey(track.id),
           child: _PlaylistTrackItem(
             track: track,
+            allTracks: _tracks,
+            trackIndex: index,
             onDownload: () => _downloadTrack(context, track),
+            isSpotifyStyle: false,
           ),
         );
       }, childCount: _tracks.length),
@@ -686,30 +754,108 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
 }
 
 /// Separate Consumer widget for each track - only rebuilds when this specific track's status changes
-class _PlaylistTrackItem extends ConsumerWidget {
+class _PlaylistTrackItem extends ConsumerStatefulWidget {
   final Track track;
+  final List<Track> allTracks;
+  final int trackIndex;
   final VoidCallback onDownload;
+  final bool isSpotifyStyle;
 
-  const _PlaylistTrackItem({required this.track, required this.onDownload});
+  const _PlaylistTrackItem({
+    required this.track,
+    required this.allTracks,
+    required this.trackIndex,
+    required this.onDownload,
+    required this.isSpotifyStyle,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PlaylistTrackItem> createState() => _PlaylistTrackItemState();
+}
+
+class _PlaylistTrackItemState extends ConsumerState<_PlaylistTrackItem> {
+  bool _isLoadingStream = false;
+
+  void _handleTap(BuildContext context, {required bool isQueued}) async {
+    if (isQueued) return;
+
+    final resolvedPath = await ref.read(playbackProvider.notifier).resolveTrackPath(widget.track);
+    if (resolvedPath != null) {
+      await ref
+          .read(playbackProvider.notifier)
+          .playTracks(widget.allTracks, startIndex: widget.trackIndex);
+      return;
+    }
+
+    if (_isLoadingStream) return;
+
+    setState(() => _isLoadingStream = true);
+
+    try {
+      final settings = ref.read(settingsProvider);
+      final payload = DownloadRequestPayload(
+        spotifyId: widget.track.id,
+        trackName: widget.track.name,
+        artistName: widget.track.artistName,
+        albumName: widget.track.albumName,
+        service: settings.defaultService,
+        quality: settings.audioQuality,
+        durationMs: widget.track.duration * 1000,
+        coverUrl: widget.track.coverUrl ?? '',
+        outputDir: settings.downloadDirectory,
+        filenameFormat: settings.filenameFormat,
+      );
+
+      final response = await PlatformBridge.getStreamUrl(payload: payload);
+
+      if (response['success'] == true) {
+        final streamUrl = response['stream_url'] as String?;
+        final lyrics = response['lyrics_lrc'] as String?;
+
+        if (streamUrl != null && streamUrl.isNotEmpty) {
+          await ref
+              .read(playbackProvider.notifier)
+              .playLocalPath(
+                path: widget.track.id,
+                title: widget.track.name,
+                artist: widget.track.artistName,
+                album: widget.track.albumName,
+                coverUrl: widget.track.coverUrl ?? '',
+                streamUrl: streamUrl,
+                lyricsUrl: lyrics,
+                track: widget.track,
+              );
+        } else {
+          widget.onDownload();
+        }
+      } else {
+        widget.onDownload();
+      }
+    } catch (e) {
+      widget.onDownload();
+    } finally {
+      if (mounted) setState(() => _isLoadingStream = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     final queueItem = ref.watch(
       downloadQueueLookupProvider.select(
-        (lookup) => lookup.byTrackId[track.id],
+        (lookup) => lookup.byTrackId[widget.track.id],
       ),
     );
 
     final isInHistory = ref.watch(
       downloadHistoryProvider.select((state) {
-        if (state.isDownloaded(track.id)) return true;
-        final isrc = track.isrc?.trim();
+        if (state.isDownloaded(widget.track.id)) return true;
+        final isrc = widget.track.isrc?.trim();
         if (isrc != null && isrc.isNotEmpty && state.getByIsrc(isrc) != null) {
           return true;
         }
-        return state.findByTrackAndArtist(track.name, track.artistName) != null;
+        return state.findByTrackAndArtist(widget.track.name, widget.track.artistName) != null;
       }),
     );
 
@@ -723,15 +869,74 @@ class _PlaylistTrackItem extends ConsumerWidget {
         ? ref.watch(
             localLibraryProvider.select(
               (state) => state.existsInLibrary(
-                isrc: track.isrc,
-                trackName: track.name,
-                artistName: track.artistName,
+                isrc: widget.track.isrc,
+                trackName: widget.track.name,
+                artistName: widget.track.artistName,
               ),
             ),
           )
         : false;
 
     final isQueued = queueItem != null;
+
+    if (widget.isSpotifyStyle) {
+      return ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: widget.track.coverUrl != null
+            ? CachedNetworkImage(
+                imageUrl: widget.track.coverUrl!,
+                width: 48,
+                height: 48,
+                fit: BoxFit.cover,
+                cacheManager: CoverCacheManager.instance,
+              )
+            : Container(
+                width: 48,
+                height: 48,
+                color: const Color(0xFF282828),
+                child: const Icon(Icons.music_note, color: Color(0xFF535353)),
+              ),
+        title: Text(
+          widget.track.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        subtitle: Row(
+          children: [
+            if (isInHistory || isInLocalLibrary) ...[
+              const Icon(Icons.download_for_offline, color: Color(0xFF1DB954), size: 14),
+              const SizedBox(width: 4),
+            ],
+            Flexible(
+              child: Text(
+                widget.track.artistName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_isLoadingStream)
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(color: Color(0xFF1DB954), strokeWidth: 2),
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.more_vert, color: Colors.white70),
+                onPressed: () => TrackCollectionQuickActions.showTrackOptionsSheet(context, ref, widget.track),
+              ),
+          ],
+        ),
+        onTap: () => _handleTap(context, isQueued: isQueued),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -743,11 +948,11 @@ class _PlaylistTrackItem extends ConsumerWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          leading: track.coverUrl != null
+          leading: widget.track.coverUrl != null
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: CachedNetworkImage(
-                    imageUrl: track.coverUrl!,
+                    imageUrl: widget.track.coverUrl!,
                     width: 48,
                     height: 48,
                     fit: BoxFit.cover,
@@ -768,7 +973,7 @@ class _PlaylistTrackItem extends ConsumerWidget {
                   ),
                 ),
           title: Text(
-            track.name,
+            widget.track.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(
@@ -779,7 +984,7 @@ class _PlaylistTrackItem extends ConsumerWidget {
             children: [
               Flexible(
                 child: Text(
-                  track.artistName,
+                  widget.track.artistName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: colorScheme.onSurfaceVariant),
@@ -819,100 +1024,36 @@ class _PlaylistTrackItem extends ConsumerWidget {
               ],
             ],
           ),
-          trailing: TrackCollectionQuickActions(track: track),
-          onTap: () => _handleTap(context, ref, isQueued: isQueued),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _isLoadingStream
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12.0),
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : IconButton(
+                      icon: Icon(
+                        Icons.play_arrow_rounded,
+                        color: colorScheme.primary,
+                      ),
+                      onPressed: () => _handleTap(context, isQueued: isQueued),
+                    ),
+              TrackCollectionQuickActions(track: widget.track),
+            ],
+          ),
+          onTap: () => _handleTap(context, isQueued: isQueued),
           onLongPress: () => TrackCollectionQuickActions.showTrackOptionsSheet(
             context,
             ref,
-            track,
+            widget.track,
           ),
         ),
       ),
     );
-  }
-
-  void _handleTap(
-    BuildContext context,
-    WidgetRef ref, {
-    required bool isQueued,
-  }) async {
-    if (isQueued) return;
-
-    final playedLocal = await _playLocalIfAvailable(context, ref);
-    if (playedLocal) {
-      return;
-    }
-
-    onDownload();
-  }
-
-  Future<bool> _playLocalIfAvailable(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final localState = ref.read(localLibraryProvider);
-    final historyState = ref.read(downloadHistoryProvider);
-    final historyNotifier = ref.read(downloadHistoryProvider.notifier);
-
-    try {
-      DownloadHistoryItem? historyItem = historyNotifier.getBySpotifyId(
-        track.id,
-      );
-      final isrc = track.isrc?.trim();
-      historyItem ??= (isrc != null && isrc.isNotEmpty)
-          ? historyNotifier.getByIsrc(isrc)
-          : null;
-      historyItem ??= historyState.findByTrackAndArtist(
-        track.name,
-        track.artistName,
-      );
-
-      if (historyItem != null) {
-        final exists = await fileExists(historyItem.filePath);
-        if (exists) {
-          await ref
-              .read(playbackProvider.notifier)
-              .playLocalPath(
-                path: historyItem.filePath,
-                title: track.name,
-                artist: track.artistName,
-                album: track.albumName,
-                coverUrl: track.coverUrl ?? '',
-              );
-          return true;
-        }
-        historyNotifier.removeFromHistory(historyItem.id);
-      }
-
-      var localItem = (isrc != null && isrc.isNotEmpty)
-          ? localState.getByIsrc(isrc)
-          : null;
-      localItem ??= localState.findByTrackAndArtist(
-        track.name,
-        track.artistName,
-      );
-
-      if (localItem != null && await fileExists(localItem.filePath)) {
-        await ref
-            .read(playbackProvider.notifier)
-            .playLocalPath(
-              path: localItem.filePath,
-              title: localItem.trackName,
-              artist: localItem.artistName,
-              album: localItem.albumName,
-              coverUrl: localItem.coverPath ?? track.coverUrl ?? '',
-            );
-        return true;
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.snackbarCannotOpenFile('$e'))),
-        );
-      }
-      return true;
-    }
-
-    return false;
   }
 }

@@ -10,12 +10,21 @@ import 'package:spotiflac_android/models/track.dart';
 import 'package:spotiflac_android/providers/download_queue_provider.dart';
 import 'package:spotiflac_android/providers/library_collections_provider.dart';
 import 'package:spotiflac_android/providers/local_library_provider.dart';
-import 'package:spotiflac_android/services/library_database.dart';
 import 'package:spotiflac_android/providers/settings_provider.dart';
-import 'package:spotiflac_android/services/cover_cache_manager.dart';
+import 'package:spotiflac_android/services/library_database.dart';
 import 'package:spotiflac_android/screens/track_metadata_screen.dart';
+import 'package:spotiflac_android/services/cover_cache_manager.dart';
+
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
 import 'package:spotiflac_android/widgets/playlist_picker_sheet.dart';
+import 'package:spotiflac_android/providers/library_appearance_provider.dart';
+import 'package:spotiflac_android/models/library_styles.dart';
+import 'package:spotiflac_android/widgets/library_styles/spotify_playlist_view.dart';
+import 'package:spotiflac_android/widgets/library_styles/apple_music_playlist_view.dart';
+import 'package:spotiflac_android/providers/playback_provider.dart';
+import 'package:spotiflac_android/services/platform_bridge.dart';
+import 'package:spotiflac_android/services/download_request_payload.dart';
+import 'package:spotiflac_android/services/downloaded_embedded_cover_resolver.dart';
 
 class LibraryTracksFolderScreen extends ConsumerStatefulWidget {
   final LibraryTracksFolderMode mode;
@@ -73,6 +82,7 @@ class _LibraryTracksFolderScreenState
       LibraryTracksFolderMode.wishlist => Icons.bookmark,
       LibraryTracksFolderMode.loved => Icons.favorite,
       LibraryTracksFolderMode.playlist => Icons.queue_music,
+      LibraryTracksFolderMode.downloaded => Icons.download_done,
     };
   }
 
@@ -197,6 +207,16 @@ class _LibraryTracksFolderScreenState
         case LibraryTracksFolderMode.playlist:
           if (widget.playlistId != null) {
             await notifier.removeTrackFromPlaylist(widget.playlistId!, key);
+            break;
+          }
+        case LibraryTracksFolderMode.downloaded:
+          final downloadState = ref.read(downloadHistoryProvider);
+          final entry = entries.firstWhere((e) => e.key == key);
+          final id = entry.track.id;
+          final isrc = entry.track.isrc;
+          final match = downloadState.getBySpotifyId(id) ?? (isrc != null ? downloadState.getByIsrc(isrc) : null) ?? downloadState.findByTrackAndArtist(entry.track.name, entry.track.artistName);
+          if (match != null) {
+             ref.read(downloadHistoryProvider.notifier).removeFromHistory(match.id);
           }
           break;
       }
@@ -270,6 +290,67 @@ class _LibraryTracksFolderScreenState
               );
         entries = playlist?.tracks ?? const <CollectionTrackEntry>[];
         break;
+      case LibraryTracksFolderMode.downloaded:
+        playlist = null;
+        final downloadedItems = ref.watch(
+          downloadHistoryProvider.select((state) => state.items),
+        );
+        // Build entries from download history
+        final downloadEntries = downloadedItems.map((e) => CollectionTrackEntry(
+          key: e.spotifyId ?? e.isrc ?? e.id,
+          track: Track(
+              id: e.spotifyId ?? e.isrc ?? e.id,
+              name: e.trackName,
+              artistName: e.artistName,
+              albumName: e.albumName,
+              coverUrl: e.coverUrl,
+              isrc: e.isrc,
+              duration: e.duration ?? 0,
+              source: 'downloaded',
+          ),
+          addedAt: e.downloadedAt,
+          filePath: e.filePath,
+        )).toList();
+
+        // Collect keys already present from download history to avoid duplicates
+        final seenKeys = <String>{};
+        for (final entry in downloadEntries) {
+          seenKeys.add(entry.key);
+          final isrc = entry.track.isrc;
+          if (isrc != null && isrc.isNotEmpty) seenKeys.add('isrc:$isrc');
+          seenKeys.add('${entry.track.name.toLowerCase()}|${entry.track.artistName.toLowerCase()}');
+        }
+
+        // Add local library items that are NOT already in download history
+        final localItems = localState.items;
+        final localEntries = <CollectionTrackEntry>[];
+        for (final item in localItems) {
+          final matchKey = '${item.trackName.toLowerCase()}|${item.artistName.toLowerCase()}';
+          final isrcKey = item.isrc != null && item.isrc!.isNotEmpty ? 'isrc:${item.isrc}' : '';
+          if (seenKeys.contains(matchKey) || (isrcKey.isNotEmpty && seenKeys.contains(isrcKey))) {
+            continue; // Already present from download history
+          }
+          seenKeys.add(matchKey);
+          if (isrcKey.isNotEmpty) seenKeys.add(isrcKey);
+          localEntries.add(CollectionTrackEntry(
+            key: item.isrc ?? 'local:${item.id}',
+            track: Track(
+              id: item.isrc ?? 'local:${item.id}',
+              name: item.trackName,
+              artistName: item.artistName,
+              albumName: item.albumName,
+              coverUrl: item.coverPath,
+              isrc: item.isrc,
+              duration: item.duration ?? 0,
+              source: 'local',
+            ),
+            addedAt: item.scannedAt,
+            filePath: item.filePath,
+          ));
+        }
+
+        entries = [...downloadEntries, ...localEntries];
+        break;
     }
 
     // Stale selection cleanup
@@ -288,6 +369,7 @@ class _LibraryTracksFolderScreenState
       LibraryTracksFolderMode.loved => context.l10n.collectionLoved,
       LibraryTracksFolderMode.playlist =>
         playlist?.name ?? context.l10n.collectionPlaylist,
+      LibraryTracksFolderMode.downloaded => 'Downloaded',
     };
 
     final emptyTitle = switch (widget.mode) {
@@ -296,6 +378,7 @@ class _LibraryTracksFolderScreenState
       LibraryTracksFolderMode.loved => context.l10n.collectionLovedEmptyTitle,
       LibraryTracksFolderMode.playlist =>
         context.l10n.collectionPlaylistEmptyTitle,
+      LibraryTracksFolderMode.downloaded => 'No downloads yet',
     };
 
     final emptySubtitle = switch (widget.mode) {
@@ -305,12 +388,132 @@ class _LibraryTracksFolderScreenState
         context.l10n.collectionLovedEmptySubtitle,
       LibraryTracksFolderMode.playlist =>
         context.l10n.collectionPlaylistEmptySubtitle,
+      LibraryTracksFolderMode.downloaded => 'Songs you download will appear here.',
     };
     final folderTracks = entries
         .map((entry) => entry.track)
         .toList(growable: false);
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final libraryStyle = ref.watch(libraryAppearanceProvider).libraryStyle;
+
+    if (libraryStyle == LibraryStyle.spotifyStyle || libraryStyle == LibraryStyle.appleMusicStyle) {
+      final useApple = libraryStyle == LibraryStyle.appleMusicStyle;
+      return PopScope(
+        canPop: !_isSelectionMode,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && _isSelectionMode) {
+            _exitSelectionMode();
+          }
+        },
+        child: Scaffold(
+          body: Stack(
+            children: [
+              useApple
+                ? AppleMusicPlaylistView(
+                    playlistName: title,
+                    coverUrl: widget.mode == LibraryTracksFolderMode.playlist && playlist?.coverImagePath != null
+                        ? playlist!.coverImagePath
+                        : _firstCoverUrl(entries, localState),
+                    ownerName: null,
+                    tracksCount: entries.length,
+                    isLoading: false,
+                    onOptionsPressed: playlist != null && !_isSelectionMode
+                        ? () => _showCoverOptionsSheet(context, playlist!.coverImagePath != null)
+                        : null,
+                    onDownloadAll: entries.isEmpty || _isSelectionMode ? null : () => _confirmDownloadAll(folderTracks),
+                    onAddPlaylist: entries.isEmpty || _isSelectionMode ? null : () => showAddTracksToPlaylistSheet(context, ref, folderTracks, playlistNamePrefill: title),
+                    onLoveAll: entries.isEmpty || _isSelectionMode ? null : () => _loveAll(folderTracks),
+                    isLovedAll: entries.isNotEmpty && entries.every((e) => ref.watch(libraryCollectionsProvider).isLoved(e.track)),
+                    onPlayAll: entries.isEmpty ? null : () {
+                      ref.read(playbackProvider.notifier).playTracks(folderTracks, startIndex: 0);
+                    },
+                    itemCount: entries.length,
+                    itemBuilder: (context, index) {
+                      final entry = entries[index];
+                      final isSelected = _selectedKeys.contains(entry.key);
+                      return KeyedSubtree(
+                        key: ValueKey(entry.key),
+                        child: _CollectionTrackTile(
+                          entry: entry,
+                          mode: widget.mode,
+                          playlistId: widget.playlistId,
+                          localLibraryState: localState,
+                          folderTracks: folderTracks,
+                          isSelectionMode: _isSelectionMode,
+                          isSelected: isSelected,
+                          onCoverChanged: () {
+                            if (mounted) setState(() {});
+                          },
+                          onTap: _isSelectionMode
+                              ? () => _toggleSelection(entry.key)
+                              : null, // Let _CollectionTrackTile handle tap (with streaming fallback)
+                          onLongPress: _isSelectionMode ? null : () => _enterSelectionMode(entry.key),
+                          isSpotifyStyle: false,
+                        ),
+                      );
+                    },
+                  )
+                : SpotifyPlaylistView(
+                    playlistName: title,
+                    coverUrl: widget.mode == LibraryTracksFolderMode.playlist && playlist?.coverImagePath != null
+                        ? playlist!.coverImagePath
+                        : _firstCoverUrl(entries, localState),
+                    ownerName: null,
+                    tracksCount: entries.length,
+                    isLoading: false,
+                    onOptionsPressed: playlist != null && !_isSelectionMode
+                        ? () => _showCoverOptionsSheet(context, playlist!.coverImagePath != null)
+                        : null,
+                    onDownloadAll: entries.isEmpty || _isSelectionMode ? null : () => _confirmDownloadAll(folderTracks),
+                    onAddPlaylist: entries.isEmpty || _isSelectionMode ? null : () => showAddTracksToPlaylistSheet(context, ref, folderTracks, playlistNamePrefill: title),
+                    onLoveAll: entries.isEmpty || _isSelectionMode ? null : () => _loveAll(folderTracks),
+                    isLovedAll: entries.isNotEmpty && entries.every((e) => ref.watch(libraryCollectionsProvider).isLoved(e.track)),
+                    onPlayAll: entries.isEmpty ? null : () {
+                      ref.read(playbackProvider.notifier).playTracks(folderTracks, startIndex: 0);
+                    },
+                    itemCount: entries.length,
+                    itemBuilder: (context, index) {
+                      final entry = entries[index];
+                      final isSelected = _selectedKeys.contains(entry.key);
+                      return KeyedSubtree(
+                        key: ValueKey(entry.key),
+                        child: _CollectionTrackTile(
+                          entry: entry,
+                          mode: widget.mode,
+                          playlistId: widget.playlistId,
+                          localLibraryState: localState,
+                          folderTracks: folderTracks,
+                          isSelectionMode: _isSelectionMode,
+                          isSelected: isSelected,
+                          onCoverChanged: () {
+                            if (mounted) setState(() {});
+                          },
+                          onTap: _isSelectionMode ? () => _toggleSelection(entry.key) : null,
+                          onLongPress: _isSelectionMode ? null : () => _enterSelectionMode(entry.key),
+                          isSpotifyStyle: true,
+                        ),
+                      );
+                    },
+                  ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                left: 0,
+                right: 0,
+                bottom: _isSelectionMode ? 0 : -(280 + bottomPadding),
+                child: _buildSelectionBottomBar(
+                  context,
+                  colorScheme,
+                  entries,
+                  bottomPadding,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return PopScope(
       canPop: !_isSelectionMode,
@@ -356,12 +559,16 @@ class _LibraryTracksFolderScreenState
                           folderTracks: folderTracks,
                           isSelectionMode: _isSelectionMode,
                           isSelected: isSelected,
+                          onCoverChanged: () {
+                            if (mounted) setState(() {});
+                          },
                           onTap: _isSelectionMode
                               ? () => _toggleSelection(entry.key)
                               : null,
                           onLongPress: _isSelectionMode
                               ? null
                               : () => _enterSelectionMode(entry.key),
+                          isSpotifyStyle: false,
                         ),
                       );
                     }, childCount: entries.length),
@@ -873,7 +1080,9 @@ class _LibraryTracksFolderScreenState
   void _downloadAll(List<Track> tracks) {
     if (tracks.isEmpty) return;
     final settings = ref.read(settingsProvider);
-    final playlistName = widget.mode == LibraryTracksFolderMode.playlist ? playlist?.name ?? context.l10n.collectionPlaylist : null;
+    final playlistName = widget.mode == LibraryTracksFolderMode.playlist
+        ? playlist?.name ?? context.l10n.collectionPlaylist
+        : null;
     if (settings.askQualityBeforeDownload) {
       DownloadServicePicker.show(
         context,
@@ -882,11 +1091,17 @@ class _LibraryTracksFolderScreenState
           LibraryTracksFolderMode.wishlist => context.l10n.collectionWishlist,
           LibraryTracksFolderMode.loved => context.l10n.collectionLoved,
           LibraryTracksFolderMode.playlist => context.l10n.collectionPlaylist,
+          LibraryTracksFolderMode.downloaded => 'Downloaded',
         },
         onSelect: (quality, service) {
           ref
               .read(downloadQueueProvider.notifier)
-              .addMultipleToQueue(tracks, service, qualityOverride: quality, playlistName: playlistName);
+              .addMultipleToQueue(
+                tracks,
+                service,
+                qualityOverride: quality,
+                playlistName: playlistName,
+              );
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -900,12 +1115,53 @@ class _LibraryTracksFolderScreenState
     } else {
       ref
           .read(downloadQueueProvider.notifier)
-          .addMultipleToQueue(tracks, settings.defaultService, playlistName: playlistName);
+          .addMultipleToQueue(
+            tracks,
+            settings.defaultService,
+            playlistName: playlistName,
+          );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(context.l10n.snackbarAddedTracksToQueue(tracks.length)),
         ),
       );
+    }
+  }
+
+  Future<void> _loveAll(List<Track> tracks) async {
+    final notifier = ref.read(libraryCollectionsProvider.notifier);
+    final state = ref.read(libraryCollectionsProvider);
+    final allLoved = tracks.isNotEmpty && tracks.every((t) => state.isLoved(t));
+
+    if (allLoved) {
+      for (final track in tracks) {
+        final key = trackCollectionKey(track);
+        await notifier.removeFromLoved(key);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.l10n.snackbarRemovedTracksFromLoved(tracks.length),
+            ),
+          ),
+        );
+      }
+    } else {
+      int addedCount = 0;
+      for (final track in tracks) {
+        if (!state.isLoved(track)) {
+          await notifier.toggleLoved(track);
+          addedCount++;
+        }
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.l10n.snackbarAddedTracksToLoved(addedCount)),
+          ),
+        );
+      }
     }
   }
 
@@ -998,6 +1254,8 @@ class _CollectionTrackTile extends ConsumerWidget {
   final bool isSelected;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final bool isSpotifyStyle;
+  final VoidCallback onCoverChanged;
 
   const _CollectionTrackTile({
     required this.entry,
@@ -1005,10 +1263,12 @@ class _CollectionTrackTile extends ConsumerWidget {
     required this.playlistId,
     required this.localLibraryState,
     required this.folderTracks,
+    required this.onCoverChanged,
     this.isSelectionMode = false,
     this.isSelected = false,
     this.onTap,
     this.onLongPress,
+    this.isSpotifyStyle = false,
   });
 
   @override
@@ -1042,6 +1302,79 @@ class _CollectionTrackTile extends ConsumerWidget {
             ),
           )
         : false;
+
+    if (isSpotifyStyle) {
+      return ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        tileColor: isSelected ? colorScheme.primaryContainer.withValues(alpha: 0.3) : Colors.transparent,
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelectionMode) ...[
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: isSelected ? colorScheme.primary : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? colorScheme.primary : colorScheme.outline,
+                    width: 2,
+                  ),
+                ),
+                child: isSelected ? Icon(Icons.check, color: colorScheme.onPrimary, size: 16) : null,
+              ),
+              const SizedBox(width: 12),
+            ],
+            if (effectiveCoverUrl != null && effectiveCoverUrl.isNotEmpty)
+              CachedNetworkImage(
+                imageUrl: effectiveCoverUrl,
+                width: 48,
+                height: 48,
+                fit: BoxFit.cover,
+                cacheManager: CoverCacheManager.instance,
+              )
+            else
+              Container(
+                width: 48,
+                height: 48,
+                color: const Color(0xFF282828),
+                child: const Icon(Icons.music_note, color: Color(0xFF535353)),
+              ),
+          ],
+        ),
+        title: Text(
+          track.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        subtitle: Row(
+          children: [
+            if (isInHistory || isInLocalLibrary) ...[
+              const Icon(Icons.download_for_offline, color: Color(0xFF1DB954), size: 14),
+              const SizedBox(width: 4),
+            ],
+            Flexible(
+              child: Text(
+                track.artistName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+        trailing: isSelectionMode
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.more_vert, color: Colors.white70),
+                onPressed: () => _showTrackOptionsSheet(context, ref),
+              ),
+        onTap: onTap ?? () => _handlePlayTrack(context, ref, entry.track),
+        onLongPress: onLongPress,
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1146,25 +1479,36 @@ class _CollectionTrackTile extends ConsumerWidget {
           ),
           trailing: isSelectionMode
               ? null
-              : IconButton(
-                  tooltip: MaterialLocalizations.of(context).showMenuTooltip,
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: colorScheme.onSurfaceVariant,
-                    size: 20,
-                  ),
-                  onPressed: () => _showTrackOptionsSheet(context, ref),
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!isSpotifyStyle && !isInHistory && !isInLocalLibrary && ref.watch(libraryAppearanceProvider).libraryStyle == LibraryStyle.appleMusicStyle)
+                      IconButton(
+                        icon: Icon(Icons.arrow_downward, size: 20, color: Colors.redAccent.shade400),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        onPressed: () => _downloadTrack(context, ref),
+                      ),
+                    IconButton(
+                      tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: colorScheme.onSurfaceVariant,
+                        size: 20,
+                      ),
+                      onPressed: () => _showTrackOptionsSheet(context, ref),
+                    ),
+                  ],
                 ),
           onTap: isSelectionMode
               ? onTap
-              : () {
+              : (onTap ?? () {
                   if (mode == LibraryTracksFolderMode.wishlist) {
                     _downloadTrack(context, ref);
                     return;
                   }
-
-                  _navigateToMetadata(context, ref);
-                },
+                  _handlePlayTrack(context, ref, track);
+                }),
           onLongPress: isSelectionMode ? onTap : onLongPress,
         ),
       ),
@@ -1176,14 +1520,20 @@ class _CollectionTrackTile extends ConsumerWidget {
     if (rawCover != null &&
         rawCover.isNotEmpty &&
         !rawCover.startsWith('content://')) {
-      return rawCover;
+      if (!rawCover.startsWith('http://') && !rawCover.startsWith('https://')) {
+        if (File(rawCover).existsSync()) return rawCover;
+      } else {
+        return rawCover;
+      }
     }
 
     final isrc = track.isrc?.trim();
     if (isrc != null && isrc.isNotEmpty) {
       final byIsrc = localLibraryState.getByIsrc(isrc);
       final localCover = byIsrc?.coverPath?.trim();
-      if (localCover != null && localCover.isNotEmpty) return localCover;
+      if (localCover != null && localCover.isNotEmpty && File(localCover).existsSync()) {
+        return localCover;
+      }
     }
 
     final byTrack = localLibraryState.findByTrackAndArtist(
@@ -1191,7 +1541,13 @@ class _CollectionTrackTile extends ConsumerWidget {
       track.artistName,
     );
     final localCover = byTrack?.coverPath?.trim();
-    if (localCover != null && localCover.isNotEmpty) return localCover;
+    if (localCover != null && localCover.isNotEmpty && File(localCover).existsSync()) {
+        return localCover;
+    }
+
+    if (entry.filePath != null && entry.filePath!.isNotEmpty) {
+       return DownloadedEmbeddedCoverResolver.resolve(entry.filePath, onChanged: onCoverChanged);
+    }
 
     return null;
   }
@@ -1336,6 +1692,16 @@ class _CollectionTrackTile extends ConsumerWidget {
                 },
               ),
 
+            // Song Info Option
+            _CollectionOptionTile(
+              icon: Icons.info_outline,
+              title: 'Song Info',
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _navigateToMetadata(context, ref);
+              },
+            ),
+
             // Remove from folder / playlist
             _CollectionOptionTile(
               icon: Icons.remove_circle_outline,
@@ -1373,6 +1739,15 @@ class _CollectionTrackTile extends ConsumerWidget {
       case LibraryTracksFolderMode.playlist:
         if (playlistId != null) {
           await notifier.removeTrackFromPlaylist(playlistId!, key);
+        }
+        break;
+      case LibraryTracksFolderMode.downloaded:
+        final downloadState = ref.read(downloadHistoryProvider);
+        final id = entry.track.id;
+        final isrc = entry.track.isrc;
+        final match = downloadState.getBySpotifyId(id) ?? (isrc != null ? downloadState.getByIsrc(isrc) : null) ?? downloadState.findByTrackAndArtist(entry.track.name, entry.track.artistName);
+        if (match != null) {
+           ref.read(downloadHistoryProvider.notifier).removeFromHistory(match.id);
         }
         break;
     }
@@ -1416,6 +1791,49 @@ class _CollectionTrackTile extends ConsumerWidget {
     }
   }
 
+  Future<void> _handlePlayTrack(BuildContext context, WidgetRef ref, Track track) async {
+    final resolvedPath = await ref.read(playbackProvider.notifier).resolveTrackPath(track);
+    if (resolvedPath != null) {
+      final index = folderTracks.indexWhere((t) => t.id == track.id);
+      await ref.read(playbackProvider.notifier).playTracks(folderTracks, startIndex: index >= 0 ? index : 0);
+      return;
+    }
+    // Stream fallback
+    try {
+      final settings = ref.read(settingsProvider);
+      final payload = DownloadRequestPayload(
+        spotifyId: track.id,
+        trackName: track.name,
+        artistName: track.artistName,
+        albumName: track.albumName,
+        service: settings.defaultService,
+        quality: settings.audioQuality,
+        durationMs: track.duration * 1000,
+        coverUrl: track.coverUrl ?? '',
+        outputDir: settings.downloadDirectory,
+        filenameFormat: settings.filenameFormat,
+      );
+      final response = await PlatformBridge.getStreamUrl(payload: payload);
+      if (response['success'] == true) {
+        final streamUrl = response['stream_url'] as String?;
+        final lyrics = response['lyrics_lrc'] as String?;
+        if (streamUrl != null && streamUrl.isNotEmpty) {
+          await ref.read(playbackProvider.notifier).playLocalPath(
+            path: track.id,
+            title: track.name,
+            artist: track.artistName,
+            album: track.albumName,
+            coverUrl: track.coverUrl ?? '',
+            streamUrl: streamUrl,
+            lyricsUrl: lyrics,
+            track: track,
+          );
+        }
+      }
+    } catch (_) {
+      // Streaming also failed, silently ignore
+    }
+  }
   Future<void> _navigateToMetadata(BuildContext context, WidgetRef ref) async {
     final track = entry.track;
     final historyState = ref.read(downloadHistoryProvider);
@@ -1588,4 +2006,4 @@ class _EmptyFolderState extends StatelessWidget {
   }
 }
 
-enum LibraryTracksFolderMode { wishlist, loved, playlist }
+enum LibraryTracksFolderMode { wishlist, loved, playlist, downloaded }

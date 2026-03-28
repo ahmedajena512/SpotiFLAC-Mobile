@@ -20,6 +20,7 @@ import 'package:spotiflac_android/services/shell_navigation_service.dart';
 import 'package:spotiflac_android/services/share_intent_service.dart';
 import 'package:spotiflac_android/services/update_checker.dart';
 import 'package:spotiflac_android/widgets/update_dialog.dart';
+import 'package:spotiflac_android/widgets/linx_player/mini_player.dart';
 import 'package:spotiflac_android/utils/logger.dart';
 
 final _log = AppLogger('MainShell');
@@ -505,15 +506,23 @@ class _MainShellState extends ConsumerState<MainShell> {
         return true;
       },
       child: Scaffold(
-        body: PageView.builder(
-          controller: _pageController,
-          itemCount: tabs.length,
-          onPageChanged: _onPageChanged,
-          physics: const NeverScrollableScrollPhysics(),
-          itemBuilder: (context, index) => _KeepAliveTabPage(
-            key: ValueKey('page-$index'),
-            child: tabs[index],
-          ),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: tabs.length,
+                onPageChanged: _onPageChanged,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) => _KeepAliveTabPage(
+                  key: ValueKey('page-$index'),
+                  child: tabs[index],
+                ),
+              ),
+            ),
+            // Mini Player (only visible when a track is loaded)
+            const Positioned(left: 0, right: 0, bottom: 0, child: MiniPlayer()),
+          ],
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _currentIndex.clamp(0, maxIndex),

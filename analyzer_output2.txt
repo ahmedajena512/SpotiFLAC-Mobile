@@ -1,0 +1,19 @@
+Analyzing spotify_library_root_view.dart, queue_tab.dart...
+
+warning - lib/widgets/library_styles/spotify_library_root_view.dart:6:8 - Unused import: 'package:spotiflac_android/providers/playback_provider.dart'. Try removing the import directive. - unused_import
+warning - lib/widgets/library_styles/spotify_library_root_view.dart:408:13 - The value of the local variable 'isArtistOrSingle' isn't used. Try removing the variable or using it. - unused_local_variable
+   info - lib/screens/queue_tab.dart:2784:34 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/screens/queue_tab.dart:2785:44 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/screens/queue_tab.dart:2786:45 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/screens/queue_tab.dart:2789:34 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/screens/queue_tab.dart:2790:44 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/screens/queue_tab.dart:2791:45 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/widgets/library_styles/spotify_library_root_view.dart:437:33 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/widgets/library_styles/spotify_library_root_view.dart:437:37 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/widgets/library_styles/spotify_library_root_view.dart:444:32 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/widgets/library_styles/spotify_library_root_view.dart:445:32 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/widgets/library_styles/spotify_library_root_view.dart:445:36 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/widgets/library_styles/spotify_library_root_view.dart:465:31 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/widgets/library_styles/spotify_library_root_view.dart:465:35 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+
+15 issues found.

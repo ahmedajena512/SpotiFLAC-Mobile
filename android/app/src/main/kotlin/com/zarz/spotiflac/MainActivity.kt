@@ -1984,6 +1984,13 @@ class MainActivity: FlutterFragmentActivity() {
                             }
                             result.success(response)
                         }
+                        "getStreamUrl" -> {
+                            val requestJson = call.arguments as String
+                            val response = withContext(Dispatchers.IO) {
+                                Gobackend.getStreamURLJSON(requestJson)
+                            }
+                            result.success(response)
+                        }
                         "getDownloadProgress" -> {
                             val response = withContext(Dispatchers.IO) {
                                 Gobackend.getDownloadProgress()

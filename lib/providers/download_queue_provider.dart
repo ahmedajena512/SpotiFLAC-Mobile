@@ -2818,6 +2818,166 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
     }
   }
 
+  Future<void> _embedMetadataToM4a(
+    String m4aPath,
+    Track track, {
+    String? genre,
+    String? label,
+    String? copyright,
+  }) async {
+    final settings = ref.read(settingsProvider);
+    if (!settings.embedMetadata) {
+      _log.d('Metadata embedding disabled, skipping M4A metadata/cover embed');
+      return;
+    }
+
+    String? coverPath;
+    var coverUrl = track.coverUrl;
+    if (coverUrl != null && coverUrl.isNotEmpty) {
+      try {
+        if (settings.maxQualityCover) {
+          coverUrl = _upgradeToMaxQualityCover(coverUrl);
+          _log.d('Cover URL upgraded to max quality for M4A: $coverUrl');
+        }
+
+        final tempDir = await getTemporaryDirectory();
+        final uniqueId =
+            '${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(10000)}';
+        coverPath = '${tempDir.path}/cover_m4a_$uniqueId.jpg';
+
+        final httpClient = HttpClient();
+        final request = await httpClient.getUrl(Uri.parse(coverUrl));
+        final response = await request.close();
+        if (response.statusCode == 200) {
+          final file = File(coverPath);
+          final sink = file.openWrite();
+          await response.pipe(sink);
+          await sink.close();
+          _log.d('Cover downloaded for M4A: $coverPath');
+        } else {
+          _log.w(
+            'Failed to download cover for M4A: HTTP ${response.statusCode}',
+          );
+          coverPath = null;
+        }
+        httpClient.close();
+      } catch (e) {
+        _log.e('Failed to download cover for M4A: $e');
+        coverPath = null;
+      }
+    }
+
+    try {
+      final metadata = <String, String>{
+        'TITLE': track.name,
+        'ARTIST': track.artistName,
+        'ALBUM': track.albumName,
+      };
+
+      final albumArtist = _resolveAlbumArtistForMetadata(track, settings);
+      metadata['ALBUMARTIST'] = albumArtist;
+
+      if (track.trackNumber != null && track.trackNumber! > 0) {
+        metadata['TRACKNUMBER'] = track.trackNumber.toString();
+      }
+
+      if (track.discNumber != null && track.discNumber! > 0) {
+        metadata['DISCNUMBER'] = track.discNumber.toString();
+      }
+
+      if (track.releaseDate != null) {
+        metadata['DATE'] = track.releaseDate!;
+      }
+
+      if (track.isrc != null) {
+        metadata['ISRC'] = track.isrc!;
+      }
+
+      if (genre != null && genre.isNotEmpty) {
+        metadata['GENRE'] = genre;
+      }
+      if (label != null && label.isNotEmpty) {
+        metadata['ORGANIZATION'] = label;
+      }
+      if (copyright != null && copyright.isNotEmpty) {
+        metadata['COPYRIGHT'] = copyright;
+      }
+
+      final lyricsMode = settings.lyricsMode;
+      final shouldEmbed = lyricsMode == 'embed' || lyricsMode == 'both';
+      final shouldSaveExternal =
+          lyricsMode == 'external' || lyricsMode == 'both';
+
+      if (settings.embedLyrics && (shouldEmbed || shouldSaveExternal)) {
+        try {
+          final durationMs = track.duration * 1000;
+
+          final lrcContent = await PlatformBridge.getLyricsLRC(
+            track.id,
+            track.name,
+            track.artistName,
+            filePath: '',
+            durationMs: durationMs,
+          );
+
+          if (lrcContent.isNotEmpty) {
+            if (shouldEmbed) {
+              metadata['LYRICS'] = lrcContent;
+              metadata['UNSYNCEDLYRICS'] = lrcContent;
+              _log.d(
+                'Lyrics fetched for M4A embedding (${lrcContent.length} chars)',
+              );
+            }
+
+            if (shouldSaveExternal) {
+              try {
+                final lrcPath = m4aPath.replaceAll(
+                  RegExp(r'\.m4a$', caseSensitive: false),
+                  '.lrc',
+                );
+                await File(lrcPath).writeAsString(lrcContent);
+                _log.d('External LRC file saved: $lrcPath');
+              } catch (e) {
+                _log.w('Failed to save external LRC file: $e');
+              }
+            }
+          }
+        } catch (e) {
+          _log.w('Failed to fetch lyrics for M4A: $e');
+        }
+      }
+
+      _log.d('Embedding tags to M4A: $metadata');
+
+      final result = await FFmpegService.embedMetadataToM4a(
+        m4aPath: m4aPath,
+        coverPath: coverPath != null && await File(coverPath).exists()
+            ? coverPath
+            : null,
+        metadata: metadata,
+      );
+
+      if (result != null) {
+        _log.d('Metadata, lyrics, and cover embedded to M4A via FFmpeg');
+      } else {
+        _log.w('FFmpeg M4A metadata/cover embed failed');
+      }
+
+      if (coverPath != null) {
+        try {
+          final coverFile = File(coverPath);
+          if (await coverFile.exists()) {
+            await coverFile.delete();
+          }
+        } catch (e) {
+          _log.w('Failed to cleanup M4A cover file: $e');
+        }
+      }
+    } catch (e) {
+      _log.e('Failed to embed metadata to M4A: $e');
+    }
+  }
+
   Future<void> _embedMetadataToOpus(
     String opusPath,
     Track track, {
@@ -4213,18 +4373,20 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
           }
         }
 
-        // YouTube downloads: embed metadata to raw Opus/MP3 files from Cobalt
+        // YouTube downloads: embed metadata to raw Opus/MP3/M4A files from Cobalt
         if (metadataEmbeddingEnabled &&
             !wasExisting &&
             item.service == 'youtube' &&
             filePath != null) {
           final isOpusFile = filePath.endsWith('.opus');
           final isMp3File = filePath.endsWith('.mp3');
+          final isM4aFile = filePath.endsWith('.m4a');
 
-          if (isOpusFile || isMp3File) {
-            _log.i(
-              'YouTube download: embedding metadata to ${isOpusFile ? 'Opus' : 'MP3'} file',
-            );
+          if (isOpusFile || isMp3File || isM4aFile) {
+            String formatName = isOpusFile
+                ? 'Opus'
+                : (isMp3File ? 'MP3' : 'M4A');
+            _log.i('YouTube download: embedding metadata to $formatName file');
             updateItemStatus(
               item.id,
               DownloadStatus.downloading,
@@ -4253,7 +4415,7 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
                       label: backendLabel ?? label,
                       copyright: backendCopyright,
                     );
-                  } else {
+                  } else if (isOpusFile) {
                     await _embedMetadataToOpus(
                       tempPath,
                       finalTrack,
@@ -4261,8 +4423,19 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
                       label: backendLabel ?? label,
                       copyright: backendCopyright,
                     );
+                  } else if (isM4aFile) {
+                    await _embedMetadataToM4a(
+                      tempPath,
+                      finalTrack,
+                      genre: backendGenre ?? genre,
+                      label: backendLabel ?? label,
+                      copyright: backendCopyright,
+                    );
                   }
-                  final ext = isMp3File ? '.mp3' : '.opus';
+
+                  final ext = isMp3File
+                      ? '.mp3'
+                      : (isOpusFile ? '.opus' : '.m4a');
                   final newFileName = '${safBaseName ?? 'track'}$ext';
                   final newUri = await _writeTempToSaf(
                     treeUri: settings.downloadTreeUri,
@@ -4299,8 +4472,16 @@ class DownloadQueueNotifier extends Notifier<DownloadQueueState> {
                     label: backendLabel ?? label,
                     copyright: backendCopyright,
                   );
-                } else {
+                } else if (isOpusFile) {
                   await _embedMetadataToOpus(
+                    filePath,
+                    finalTrack,
+                    genre: backendGenre ?? genre,
+                    label: backendLabel ?? label,
+                    copyright: backendCopyright,
+                  );
+                } else if (isM4aFile) {
+                  await _embedMetadataToM4a(
                     filePath,
                     finalTrack,
                     genre: backendGenre ?? genre,

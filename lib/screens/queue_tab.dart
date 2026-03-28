@@ -34,6 +34,10 @@ import 'package:spotiflac_android/utils/clickable_metadata.dart';
 import 'package:spotiflac_android/utils/path_match_keys.dart';
 import 'package:spotiflac_android/utils/string_utils.dart';
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
+import 'package:spotiflac_android/models/library_styles.dart';
+import 'package:spotiflac_android/providers/library_appearance_provider.dart';
+import 'package:spotiflac_android/widgets/library_styles/apple_music_library_root_view.dart';
+import 'package:spotiflac_android/widgets/library_styles/spotify_library_root_view.dart';
 
 enum LibraryItemSource { downloaded, local }
 
@@ -199,7 +203,7 @@ class UnifiedLibraryItem {
   }
 }
 
-class _GroupedAlbum {
+class GroupedAlbum {
   final String albumName;
   final String artistName;
   final String? coverUrl;
@@ -208,7 +212,7 @@ class _GroupedAlbum {
   final DateTime latestDownload;
   final String searchKey;
 
-  _GroupedAlbum({
+  GroupedAlbum({
     required this.albumName,
     required this.artistName,
     this.coverUrl,
@@ -220,7 +224,7 @@ class _GroupedAlbum {
   String get key => '$albumName|$artistName';
 }
 
-class _GroupedLocalAlbum {
+class GroupedLocalAlbum {
   final String albumName;
   final String artistName;
   final String? coverPath;
@@ -228,7 +232,7 @@ class _GroupedLocalAlbum {
   final DateTime latestScanned;
   final String searchKey;
 
-  _GroupedLocalAlbum({
+  GroupedLocalAlbum({
     required this.albumName,
     required this.artistName,
     this.coverPath,
@@ -242,8 +246,8 @@ class _GroupedLocalAlbum {
 class _HistoryStats {
   final Map<String, int> albumCounts;
   final Map<String, int> localAlbumCounts;
-  final List<_GroupedAlbum> groupedAlbums;
-  final List<_GroupedLocalAlbum> groupedLocalAlbums;
+  final List<GroupedAlbum> groupedAlbums;
+  final List<GroupedLocalAlbum> groupedLocalAlbums;
   final int albumCount;
   final int singleTracks;
   final int localAlbumCount;
@@ -269,8 +273,8 @@ class _FilterContentData {
   final List<DownloadHistoryItem> historyItems;
   final List<UnifiedLibraryItem> unifiedItems;
   final List<UnifiedLibraryItem> filteredUnifiedItems;
-  final List<_GroupedAlbum> filteredGroupedAlbums;
-  final List<_GroupedLocalAlbum> filteredGroupedLocalAlbums;
+  final List<GroupedAlbum> filteredGroupedAlbums;
+  final List<GroupedLocalAlbum> filteredGroupedLocalAlbums;
   final bool showFilteringIndicator;
 
   const _FilterContentData({
@@ -414,7 +418,7 @@ _HistoryStats _buildQueueHistoryStats(
     }
   }
 
-  final groupedAlbums = <_GroupedAlbum>[];
+  final groupedAlbums = <GroupedAlbum>[];
   albumMap.forEach((_, tracks) {
     if (tracks.length <= 1) return;
     tracks.sort((a, b) {
@@ -424,7 +428,7 @@ _HistoryStats _buildQueueHistoryStats(
     });
 
     groupedAlbums.add(
-      _GroupedAlbum(
+      GroupedAlbum(
         albumName: tracks.first.albumName,
         artistName: tracks.first.albumArtist ?? tracks.first.artistName,
         coverUrl: tracks.first.coverUrl,
@@ -474,7 +478,7 @@ _HistoryStats _buildQueueHistoryStats(
     }
   }
 
-  final groupedLocalAlbums = <_GroupedLocalAlbum>[];
+  final groupedLocalAlbums = <GroupedLocalAlbum>[];
   localAlbumMap.forEach((_, tracks) {
     if (tracks.length <= 1) return;
     tracks.sort((a, b) {
@@ -484,7 +488,7 @@ _HistoryStats _buildQueueHistoryStats(
     });
 
     groupedLocalAlbums.add(
-      _GroupedLocalAlbum(
+      GroupedLocalAlbum(
         albumName: tracks.first.albumName,
         artistName: tracks.first.albumArtist ?? tracks.first.artistName,
         coverPath: tracks
@@ -514,8 +518,8 @@ _HistoryStats _buildQueueHistoryStats(
   );
 }
 
-List<_GroupedAlbum> _queueFilterGroupedAlbums(
-  List<_GroupedAlbum> albums,
+List<GroupedAlbum> _queueFilterGroupedAlbums(
+  List<GroupedAlbum> albums,
   _QueueGroupedAlbumFilterRequest request,
 ) {
   if (request.filterSource == 'local') return const [];
@@ -527,7 +531,7 @@ List<_GroupedAlbum> _queueFilterGroupedAlbums(
     return albums;
   }
 
-  final result = <_GroupedAlbum>[];
+  final result = <GroupedAlbum>[];
   for (final album in albums) {
     if (request.searchQuery.isNotEmpty &&
         !album.searchKey.contains(request.searchQuery)) {
@@ -571,8 +575,8 @@ List<_GroupedAlbum> _queueFilterGroupedAlbums(
   return result;
 }
 
-List<_GroupedLocalAlbum> _queueFilterGroupedLocalAlbums(
-  List<_GroupedLocalAlbum> albums,
+List<GroupedLocalAlbum> _queueFilterGroupedLocalAlbums(
+  List<GroupedLocalAlbum> albums,
   _QueueGroupedAlbumFilterRequest request,
 ) {
   if (request.filterSource == 'downloaded') return const [];
@@ -584,7 +588,7 @@ List<_GroupedLocalAlbum> _queueFilterGroupedLocalAlbums(
     return albums;
   }
 
-  final result = <_GroupedLocalAlbum>[];
+  final result = <GroupedLocalAlbum>[];
   for (final album in albums) {
     if (request.searchQuery.isNotEmpty &&
         !album.searchKey.contains(request.searchQuery)) {
@@ -646,7 +650,7 @@ final _queueHistoryStatsProvider = Provider<_HistoryStats>((ref) {
 
 final _queueFilteredAlbumsProvider =
     Provider.family<
-      ({List<_GroupedAlbum> albums, List<_GroupedLocalAlbum> localAlbums}),
+      ({List<GroupedAlbum> albums, List<GroupedLocalAlbum> localAlbums}),
       _QueueGroupedAlbumFilterRequest
     >((ref, request) {
       final historyStats = ref.watch(_queueHistoryStatsProvider);
@@ -1610,7 +1614,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
   String _getQualityBadgeText(String quality) {
     final q = quality.trim().toLowerCase();
     if (q.contains('bit')) {
-      return quality.split('/').first;
+      return quality.split('.').first;
     }
 
     // Supports "MP3 320k", "Opus 256kbps", etc.
@@ -2155,19 +2159,43 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     String artist = '',
     String album = '',
     String coverUrl = '',
+    List<UnifiedLibraryItem>? allItems,
+    int tappedIndex = 0,
   }) async {
     final cleanPath = _cleanFilePath(filePath);
     try {
-      final fallbackTitle = cleanPath.split('/').last.split('\\').last;
-      await ref
-          .read(playbackProvider.notifier)
-          .playLocalPath(
-            path: cleanPath,
-            title: title.isNotEmpty ? title : fallbackTitle,
-            artist: artist,
-            album: album,
-            coverUrl: coverUrl,
-          );
+      if (allItems != null && allItems.isNotEmpty) {
+        // Build full playback queue from all visible library items
+        final playbackTracks = allItems
+            .map(
+              (item) => PlaybackTrack(
+                id: item.id,
+                name: item.trackName,
+                artistName: item.artistName,
+                albumName: item.albumName,
+                coverUrl: item.coverUrl,
+                localCoverPath: item.localCoverPath,
+                filePath: _cleanFilePath(item.filePath),
+              ),
+            )
+            .toList();
+        final safeIndex = tappedIndex.clamp(0, playbackTracks.length - 1);
+        await ref
+            .read(playbackProvider.notifier)
+            .playTrackList(playbackTracks, startIndex: safeIndex);
+      } else {
+        // Fallback: single-track playback (e.g. download queue items)
+        final fallbackTitle = cleanPath.split('/').last.split('\\').last;
+        await ref
+            .read(playbackProvider.notifier)
+            .playLocalPath(
+              path: cleanPath,
+              title: title.isNotEmpty ? title : fallbackTitle,
+              artist: artist,
+              album: album,
+              coverUrl: coverUrl,
+            );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2332,7 +2360,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     }
   }
 
-  void _navigateToDownloadedAlbum(_GroupedAlbum album) {
+  void _navigateToDownloadedAlbum(GroupedAlbum album) {
     _searchFocusNode.unfocus();
     Navigator.push(
       context,
@@ -2351,7 +2379,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     ).then((_) => _searchFocusNode.unfocus());
   }
 
-  void _navigateToLocalAlbum(_GroupedLocalAlbum album) {
+  void _navigateToLocalAlbum(GroupedLocalAlbum album) {
     _searchFocusNode.unfocus();
     Navigator.push(
       context,
@@ -2706,6 +2734,11 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     );
     final colorScheme = Theme.of(context).colorScheme;
     final topPadding = normalizedHeaderTopPadding(context);
+    final libraryStyle = ref.watch(libraryAppearanceProvider).libraryStyle;
+    final isSpotifyStyle = libraryStyle == LibraryStyle.spotifyStyle;
+    final isAppleMusicStyle = libraryStyle == LibraryStyle.appleMusicStyle;
+
+    const spotifyGreen = Color(0xFF1DB954);
     final filteredGroupedAlbums = filteredGrouped.albums;
     final filteredGroupedLocalAlbums = filteredGrouped.localAlbums;
     final albumCount = historyStats.totalAlbumCount;
@@ -2737,6 +2770,42 @@ class _QueueTabState extends ConsumerState<QueueTab> {
     final selectionItems = getFilterData(
       historyFilterMode,
     ).filteredUnifiedItems;
+    
+    final List<dynamic> spotifyItems;
+    if (historyFilterMode == 'albums') {
+      spotifyItems = <dynamic>[
+        ...filteredGroupedAlbums,
+        ...filteredGroupedLocalAlbums,
+      ];
+    } else if (historyFilterMode == 'all') {
+      spotifyItems = <dynamic>[
+        ...filteredGroupedAlbums,
+        ...filteredGroupedLocalAlbums,
+        ...getFilterData('singles').filteredUnifiedItems,
+      ]..sort((a, b) {
+          DateTime aTime = DateTime.now();
+          if (a is GroupedAlbum) {
+            aTime = a.latestDownload;
+          } else if (a is GroupedLocalAlbum) {
+            aTime = a.latestScanned;
+          } else if (a is UnifiedLibraryItem) {
+            aTime = a.addedAt;
+          }
+
+          DateTime bTime = DateTime.now();
+          if (b is GroupedAlbum) {
+            bTime = b.latestDownload;
+          } else if (b is GroupedLocalAlbum) {
+            bTime = b.latestScanned;
+          } else if (b is UnifiedLibraryItem) {
+            bTime = b.addedAt;
+          }
+
+          return bTime.compareTo(aTime);
+        });
+    } else {
+      spotifyItems = selectionItems;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncSelectionOverlay(
         items: selectionItems,
@@ -2761,9 +2830,90 @@ class _QueueTabState extends ConsumerState<QueueTab> {
       },
       child: Stack(
         children: [
-          // ScrollConfiguration disables stretch overscroll to fix _StretchController exception
-          // This is a known Flutter issue with NestedScrollView + Material 3 stretch indicator
-          ScrollConfiguration(
+          if (isSpotifyStyle)
+            SpotifyLibraryRootView(
+              activeFilterMode: historyFilterMode,
+              onFilterChanged: (mode) {
+                ref.read(settingsProvider.notifier).setHistoryFilterMode(mode);
+              },
+              collectionState: collectionState,
+              items: spotifyItems,
+              totalAlbums: albumCount,
+              totalSingles: singleCount,
+              totalAll: getFilterData('all').filteredUnifiedItems.length,
+              isSelectionMode: _isSelectionMode,
+              selectedIds: _selectedIds,
+              onToggleSelection: _toggleSelection,
+              onClearSelection: _exitSelectionMode,
+              onSelectAll: () => _selectAll(selectionItems),
+              onItemTap: (item) {
+                if (item is GroupedAlbum) {
+                  _navigateToDownloadedAlbum(item);
+                } else if (item is GroupedLocalAlbum) {
+                  _navigateToLocalAlbum(item);
+                } else if (item is UnifiedLibraryItem) {
+                  final index = spotifyItems.indexOf(item);
+                  _openFile(
+                    item.filePath,
+                    title: item.trackName,
+                    artist: item.artistName,
+                    album: item.albumName,
+                    coverUrl: item.coverUrl ?? item.localCoverPath ?? '',
+                    allItems: selectionItems,
+                    tappedIndex: index != -1 ? index : 0,
+                  );
+                }
+              },
+              onOptionsTap: (item) {
+                if (item is UnifiedLibraryItem) {
+                  final isDownloaded = item.source == LibraryItemSource.downloaded;
+                  if (isDownloaded && item.historyItem != null) {
+                    _navigateToHistoryMetadataScreen(item.historyItem!);
+                  } else if (item.localItem != null) {
+                    _navigateToLocalMetadataScreen(item.localItem!);
+                  }
+                }
+              },
+            )
+          else if (isAppleMusicStyle)
+            AppleMusicLibraryRootView(
+              activeFilterMode: historyFilterMode,
+              onFilterChanged: (mode) {
+                ref.read(settingsProvider.notifier).setHistoryFilterMode(mode);
+              },
+              collectionState: collectionState,
+              items: selectionItems,
+              totalAlbums: albumCount,
+              totalSingles: singleCount,
+              totalAll: getFilterData('all').filteredUnifiedItems.length,
+              isSelectionMode: _isSelectionMode,
+              selectedIds: _selectedIds,
+              onToggleSelection: _toggleSelection,
+              onClearSelection: _exitSelectionMode,
+              onSelectAll: () => _selectAll(selectionItems),
+              onItemTap: (item) {
+                if (item is GroupedAlbum) {
+                  _navigateToDownloadedAlbum(item);
+                } else if (item is GroupedLocalAlbum) {
+                  _navigateToLocalAlbum(item);
+                } else if (item is UnifiedLibraryItem) {
+                  final index = selectionItems.indexOf(item);
+                  _openFile(
+                    item.filePath,
+                    title: item.trackName,
+                    artist: item.artistName,
+                    album: item.albumName,
+                    coverUrl: item.coverUrl ?? item.localCoverPath ?? '',
+                    allItems: selectionItems,
+                    tappedIndex: index != -1 ? index : 0,
+                  );
+                }
+              },
+            )
+          else
+            // ScrollConfiguration disables stretch overscroll to fix _StretchController exception
+            // This is a known Flutter issue with NestedScrollView + Material 3 stretch indicator
+            ScrollConfiguration(
             behavior: ScrollConfiguration.of(
               context,
             ).copyWith(overscroll: false),
@@ -2797,7 +2947,9 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                           style: TextStyle(
                             fontSize: 20 + (14 * expandRatio),
                             fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
+                            color: isSpotifyStyle
+                                ? Colors.white
+                                : colorScheme.onSurface,
                           ),
                         ),
                       );
@@ -2850,7 +3002,9 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(28),
                               borderSide: BorderSide(
-                                color: colorScheme.primary,
+                                color: isSpotifyStyle
+                                    ? spotifyGreen
+                                    : colorScheme.primary,
                                 width: 2.5,
                               ),
                             ),
@@ -2907,6 +3061,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                                   label: context.l10n.historyFilterAll,
                                   count: filteredAllCount,
                                   isSelected: historyFilterMode == 'all',
+                                  isSpotifyStyle: isSpotifyStyle,
                                   onTap: () {
                                     _animateToFilterPage(0);
                                   },
@@ -2916,6 +3071,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                                   label: context.l10n.historyFilterAlbums,
                                   count: filteredAlbumCount,
                                   isSelected: historyFilterMode == 'albums',
+                                  isSpotifyStyle: isSpotifyStyle,
                                   onTap: () {
                                     _animateToFilterPage(1);
                                   },
@@ -2925,6 +3081,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                                   label: context.l10n.historyFilterSingles,
                                   count: filteredSingleCount,
                                   isSelected: historyFilterMode == 'singles',
+                                  isSpotifyStyle: isSpotifyStyle,
                                   onTap: () {
                                     _animateToFilterPage(2);
                                   },
@@ -2987,7 +3144,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
         .toList(growable: false);
 
     List<LocalLibraryItem> localItemsForMerge;
-    if (filterMode == 'all') {
+    if (filterMode == 'all' || filterMode == 'songs') {
       localItemsForMerge = _filterLocalItems(localLibraryItems, query);
     } else {
       final localSingles = localLibraryItems
@@ -3036,8 +3193,8 @@ class _QueueTabState extends ConsumerState<QueueTab> {
   _FilterContentData _computeFilterContentData({
     required String filterMode,
     required List<DownloadHistoryItem> allHistoryItems,
-    required List<_GroupedAlbum> filteredGroupedAlbums,
-    required List<_GroupedLocalAlbum> filteredGroupedLocalAlbums,
+    required List<GroupedAlbum> filteredGroupedAlbums,
+    required List<GroupedLocalAlbum> filteredGroupedLocalAlbums,
     required Map<String, int> albumCounts,
     required Map<String, int> localAlbumCounts,
     required List<LocalLibraryItem> localLibraryItems,
@@ -3796,12 +3953,16 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                               context,
                               item,
                               colorScheme,
+                              allItems: filteredUnifiedItems,
+                              itemIndex: trackIndex,
                             ),
                           ),
                           child: _buildUnifiedGridItem(
                             context,
                             item,
                             colorScheme,
+                            allItems: filteredUnifiedItems,
+                            itemIndex: trackIndex,
                           ),
                         ),
                       );
@@ -3847,12 +4008,16 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                             context,
                             item,
                             colorScheme,
+                            allItems: filteredUnifiedItems,
+                            itemIndex: trackIndex,
                           ),
                         ),
                         child: _buildUnifiedLibraryItem(
                           context,
                           item,
                           colorScheme,
+                          allItems: filteredUnifiedItems,
+                          itemIndex: trackIndex,
                         ),
                       ),
                     );
@@ -3934,6 +4099,8 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                           context,
                           item,
                           colorScheme,
+                          allItems: filteredUnifiedItems,
+                          itemIndex: index,
                         ),
                       );
                     }, childCount: filteredUnifiedItems.length),
@@ -3948,6 +4115,8 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                         context,
                         item,
                         colorScheme,
+                        allItems: filteredUnifiedItems,
+                        itemIndex: index,
                       ),
                     );
                   }, childCount: filteredUnifiedItems.length),
@@ -4092,7 +4261,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
 
   Widget _buildAlbumGridItem(
     BuildContext context,
-    _GroupedAlbum album,
+    GroupedAlbum album,
     ColorScheme colorScheme,
   ) {
     final embeddedCoverPath = _resolveDownloadedEmbeddedCoverPath(
@@ -4216,7 +4385,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
   /// Album grid item for local library albums
   Widget _buildLocalAlbumGridItem(
     BuildContext context,
-    _GroupedLocalAlbum album,
+    GroupedLocalAlbum album,
     ColorScheme colorScheme,
   ) {
     return Semantics(
@@ -4233,27 +4402,26 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: album.coverPath != null
-                        ? Image.file(
-                            File(album.coverPath!),
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            cacheWidth: 300,
-                            cacheHeight: 300,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  color: colorScheme.surfaceContainerHighest,
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.album,
-                                      color: colorScheme.onSurfaceVariant,
-                                      size: 48,
-                                    ),
-                                  ),
-                                ),
-                          )
-                        : Container(
+                    child: Builder(builder: (context) {
+                      final hasValidCover = album.coverPath != null &&
+                          File(album.coverPath!).existsSync();
+                      final embeddedCoverPath = !hasValidCover &&
+                              album.tracks.isNotEmpty
+                          ? _resolveDownloadedEmbeddedCoverPath(
+                              album.tracks.first.filePath,
+                            )
+                          : null;
+
+                      if (hasValidCover || embeddedCoverPath != null) {
+                        return Image.file(
+                          File(hasValidCover ? album.coverPath! : embeddedCoverPath!),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          cacheWidth: 300,
+                          cacheHeight: 300,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
                             color: colorScheme.surfaceContainerHighest,
                             child: Center(
                               child: Icon(
@@ -4263,6 +4431,20 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                               ),
                             ),
                           ),
+                        );
+                      }
+
+                      return Container(
+                        color: colorScheme.surfaceContainerHighest,
+                        child: Center(
+                          child: Icon(
+                            Icons.album,
+                            color: colorScheme.onSurfaceVariant,
+                            size: 48,
+                          ),
+                        ),
+                      );
+                    }),
                   ),
                   // "Local" badge instead of track count
                   Positioned(
@@ -5884,19 +6066,43 @@ class _QueueTabState extends ConsumerState<QueueTab> {
 
     // Local file cover (from library scan)
     if (item.localCoverPath != null && item.localCoverPath!.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.file(
-          File(item.localCoverPath!),
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          cacheWidth: (size * 2).toInt(),
-          cacheHeight: (size * 2).toInt(),
-          errorBuilder: (context, error, stackTrace) =>
-              _buildPlaceholderCover(colorScheme, size, isDownloaded),
-        ),
+      if (File(item.localCoverPath!).existsSync()) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.file(
+            File(item.localCoverPath!),
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            cacheWidth: (size * 2).toInt(),
+            cacheHeight: (size * 2).toInt(),
+            errorBuilder: (context, error, stackTrace) =>
+                _buildPlaceholderCover(colorScheme, size, isDownloaded),
+          ),
+        );
+      }
+    }
+
+    // Try extracting on the fly for local library tracks just like downloaded tracks!
+    if (!isDownloaded && item.filePath.isNotEmpty) {
+      final embeddedCoverPath = _resolveDownloadedEmbeddedCoverPath(
+        item.filePath,
       );
+      if (embeddedCoverPath != null) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.file(
+            File(embeddedCoverPath),
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            cacheWidth: (size * 2).toInt(),
+            cacheHeight: (size * 2).toInt(),
+            errorBuilder: (context, error, stackTrace) =>
+                _buildPlaceholderCover(colorScheme, size, isDownloaded),
+          ),
+        );
+      }
     }
 
     // Placeholder (no cover)
@@ -6032,8 +6238,10 @@ class _QueueTabState extends ConsumerState<QueueTab> {
   Widget _buildUnifiedLibraryItem(
     BuildContext context,
     UnifiedLibraryItem item,
-    ColorScheme colorScheme,
-  ) {
+    ColorScheme colorScheme, {
+    List<UnifiedLibraryItem>? allItems,
+    int itemIndex = 0,
+  }) {
     final fileExistsListenable = _fileExistsListenable(item.filePath);
     final isSelected = _selectedIds.contains(item.id);
     final date = item.addedAt;
@@ -6069,6 +6277,8 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                 artist: item.artistName,
                 album: item.albumName,
                 coverUrl: item.coverUrl ?? item.localCoverPath ?? '',
+                allItems: allItems,
+                tappedIndex: itemIndex,
               ),
         onLongPress: _isSelectionMode
             ? null
@@ -6216,6 +6426,8 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                               album: item.albumName,
                               coverUrl:
                                   item.coverUrl ?? item.localCoverPath ?? '',
+                              allItems: allItems,
+                              tappedIndex: itemIndex,
                             ),
                             icon: Icon(
                               Icons.play_arrow,
@@ -6248,8 +6460,10 @@ class _QueueTabState extends ConsumerState<QueueTab> {
   Widget _buildUnifiedGridItem(
     BuildContext context,
     UnifiedLibraryItem item,
-    ColorScheme colorScheme,
-  ) {
+    ColorScheme colorScheme, {
+    List<UnifiedLibraryItem>? allItems,
+    int itemIndex = 0,
+  }) {
     final fileExistsListenable = _fileExistsListenable(item.filePath);
     final isSelected = _selectedIds.contains(item.id);
     final isDownloaded = item.source == LibraryItemSource.downloaded;
@@ -6267,6 +6481,8 @@ class _QueueTabState extends ConsumerState<QueueTab> {
               artist: item.artistName,
               album: item.albumName,
               coverUrl: item.coverUrl ?? item.localCoverPath ?? '',
+              allItems: allItems,
+              tappedIndex: itemIndex,
             ),
       onLongPress: _isSelectionMode ? null : () => _enterSelectionMode(item.id),
       child: Stack(
@@ -6355,6 +6571,8 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                                           item.coverUrl ??
                                           item.localCoverPath ??
                                           '',
+                                      allItems: allItems,
+                                      tappedIndex: itemIndex,
                                     ),
                                     child: Container(
                                       padding: const EdgeInsets.all(6),
@@ -6475,14 +6693,18 @@ class _FilterChip extends StatelessWidget {
   final String label;
   final int count;
   final bool isSelected;
+  final bool isSpotifyStyle;
   final VoidCallback onTap;
 
   const _FilterChip({
     required this.label,
     required this.count,
     required this.isSelected,
+    this.isSpotifyStyle = false,
     required this.onTap,
   });
+
+  static const _spotifyGreen = Color(0xFF1DB954);
 
   @override
   Widget build(BuildContext context) {
@@ -6490,7 +6712,7 @@ class _FilterChip extends StatelessWidget {
 
     return Material(
       color: isSelected
-          ? colorScheme.primaryContainer
+          ? (isSpotifyStyle ? _spotifyGreen : colorScheme.primaryContainer)
           : colorScheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
@@ -6505,7 +6727,7 @@ class _FilterChip extends StatelessWidget {
                 label,
                 style: TextStyle(
                   color: isSelected
-                      ? colorScheme.onPrimaryContainer
+                      ? (isSpotifyStyle ? Colors.white : colorScheme.onPrimaryContainer)
                       : colorScheme.onSurfaceVariant,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
@@ -6515,7 +6737,9 @@ class _FilterChip extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? colorScheme.primary.withValues(alpha: 0.2)
+                      ? (isSpotifyStyle
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : colorScheme.primary.withValues(alpha: 0.2))
                       : colorScheme.outline.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -6524,7 +6748,7 @@ class _FilterChip extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     color: isSelected
-                        ? colorScheme.onPrimaryContainer
+                        ? (isSpotifyStyle ? Colors.white : colorScheme.onPrimaryContainer)
                         : colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
