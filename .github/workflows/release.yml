@@ -193,15 +193,20 @@ jobs:
       - name: Build Go backend for iOS
         working-directory: go_backend
         run: |
+          # Ensure target directory exists in the iOS project
           mkdir -p ../ios/Frameworks
-          gomobile bind -target=ios -tags ios -o ../ios/Frameworks/Gobackend.xcframework .
+          
+          # Build XCFramework for iOS devices (real hardware)
+          # We specify iosversion and arch for clarity
+          gomobile bind -target=ios -iosversion=15.0 -o ../ios/Frameworks/Gobackend.xcframework .
+          
+          # Debugging: Verify results
+          echo "Frameworks directory content:"
+          ls -la ../ios/Frameworks/
+          echo "Gobackend.xcframework structure:"
+          ls -R ../ios/Frameworks/Gobackend.xcframework/
         env:
           CGO_ENABLED: 1
-
-      - name: Verify XCFramework created
-        run: |
-          ls -la ios/Frameworks/
-          ls -la ios/Frameworks/Gobackend.xcframework/ || (echo "ERROR: XCFramework not found!" && exit 1)
 
       - name: Ensure Framework Search Paths
         run: |
