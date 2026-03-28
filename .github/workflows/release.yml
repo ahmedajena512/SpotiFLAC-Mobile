@@ -60,7 +60,7 @@ jobs:
           df -h
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -169,7 +169,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -203,45 +203,12 @@ jobs:
           ls -la ios/Frameworks/
           ls -la ios/Frameworks/Gobackend.xcframework/ || (echo "ERROR: XCFramework not found!" && exit 1)
 
-      - name: Add XCFramework to Xcode project
+      - name: Ensure Framework Search Paths
         run: |
-          # Install xcodeproj gem for modifying Xcode project
-          sudo gem install xcodeproj
-
-          # Create Ruby script to add framework
-          cat > add_framework.rb << 'EOF'
-          require 'xcodeproj'
-
-          project_path = 'ios/Runner.xcodeproj'
-          project = Xcodeproj::Project.open(project_path)
-
-          # Get the main target
-          target = project.targets.find { |t| t.name == 'Runner' }
-
-          # Get or create Frameworks group
-          frameworks_group = project.main_group.find_subpath('Frameworks', true)
-          frameworks_group ||= project.main_group.new_group('Frameworks')
-
-          # Add XCFramework reference
-          framework_path = 'Frameworks/Gobackend.xcframework'
-          framework_ref = frameworks_group.new_file(framework_path, :project)
-
-          # Add to frameworks build phase
-          frameworks_build_phase = target.frameworks_build_phase
-          frameworks_build_phase.add_file_reference(framework_ref)
-
-          # Add to embed frameworks build phase
-          embed_phase = target.build_phases.find { |p| p.is_a?(Xcodeproj::Project::Object::PBXCopyFilesBuildPhase) && p.name == 'Embed Frameworks' }
-          if embed_phase
-            build_file = embed_phase.add_file_reference(framework_ref)
-            build_file.settings = { 'ATTRIBUTES' => ['CodeSignOnCopy', 'RemoveHeadersOnCopy'] }
-          end
-
-          project.save
-          puts "Successfully added Gobackend.xcframework to Xcode project"
-          EOF
-
-          ruby add_framework.rb
+          # Ensure the project uses the correct search paths for the Go framework
+          # This is a fallback in case the committed project file has issues
+          grep -q "FRAMEWORK_SEARCH_PATHS" ios/Runner.xcodeproj/project.pbxproj || (echo "ERROR: FRAMEWORK_SEARCH_PATHS missing in project file!" && exit 1)
+          echo "Framework Search Paths verified"
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -308,7 +275,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history needed for git-cliff
 
@@ -402,7 +369,7 @@ jobs:
 
     steps:
       - name: Checkout main branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           ref: main
 
@@ -457,7 +424,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
