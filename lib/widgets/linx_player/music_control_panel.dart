@@ -8,8 +8,8 @@ import 'slider_custom.dart';
 /// Song info panel with title, artist, progress slider, and time display.
 class SongInfoPanel extends ConsumerWidget {
   final double tempSliderValue;
-  final Function(double) onSliderChanged;
-  final Function(double) onSliderChangeEnd;
+  final void Function(double) onSliderChanged;
+  final void Function(double) onSliderChangeEnd;
   final double animationProgress;
 
   const SongInfoPanel({

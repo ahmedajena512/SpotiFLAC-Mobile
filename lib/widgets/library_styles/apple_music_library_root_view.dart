@@ -11,7 +11,7 @@ import 'package:spotiflac_android/services/cover_cache_manager.dart';
 
 class AppleMusicLibraryRootView extends ConsumerStatefulWidget {
   final String activeFilterMode;
-  final Function(String) onFilterChanged;
+  final void Function(String) onFilterChanged;
   final LibraryCollectionsState collectionState;
   final List<dynamic> items; // UnifiedLibraryItem, GroupedAlbum, GroupedLocalAlbum
   final int totalAlbums;
@@ -19,10 +19,10 @@ class AppleMusicLibraryRootView extends ConsumerStatefulWidget {
   final int totalAll;
   final bool isSelectionMode;
   final Set<String> selectedIds;
-  final Function(String) onToggleSelection;
+  final void Function(String) onToggleSelection;
   final VoidCallback onClearSelection;
   final VoidCallback onSelectAll;
-  final Function(dynamic) onItemTap;
+  final void Function(dynamic) onItemTap;
 
   const AppleMusicLibraryRootView({
     super.key,
@@ -73,7 +73,7 @@ class _AppleMusicLibraryRootViewState extends ConsumerState<AppleMusicLibraryRoo
   void _openLikedSongs() {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (_) => const LibraryTracksFolderScreen(
           mode: LibraryTracksFolderMode.loved,
         ),
@@ -84,7 +84,7 @@ class _AppleMusicLibraryRootViewState extends ConsumerState<AppleMusicLibraryRoo
   void _openWishlist() {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (_) => const LibraryTracksFolderScreen(
           mode: LibraryTracksFolderMode.wishlist,
         ),
@@ -95,7 +95,7 @@ class _AppleMusicLibraryRootViewState extends ConsumerState<AppleMusicLibraryRoo
   void _openPlaylist(UserPlaylistCollection playlist) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (_) => LibraryTracksFolderScreen(
           mode: LibraryTracksFolderMode.playlist,
           playlistId: playlist.id,
@@ -307,7 +307,7 @@ class _AppleMusicLibraryRootViewState extends ConsumerState<AppleMusicLibraryRoo
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
+                          MaterialPageRoute<void>(
                             builder: (_) => const LibraryPlaylistsScreen(),
                           ),
                         );
@@ -347,7 +347,7 @@ class _AppleMusicLibraryRootViewState extends ConsumerState<AppleMusicLibraryRoo
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
+                          MaterialPageRoute<void>(
                             builder: (_) => const LibraryTracksFolderScreen(
                               mode: LibraryTracksFolderMode.downloaded,
                             ),

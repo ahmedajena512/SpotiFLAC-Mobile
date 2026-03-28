@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class PlayerTransitionRoute extends PageRouteBuilder {
+class PlayerTransitionRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
 
   PlayerTransitionRoute({required this.page})

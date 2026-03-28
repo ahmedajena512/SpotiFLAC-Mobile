@@ -13,7 +13,6 @@ import 'package:spotiflac_android/providers/recent_access_provider.dart';
 import 'package:spotiflac_android/providers/local_library_provider.dart';
 import 'package:spotiflac_android/providers/playback_provider.dart';
 import 'package:spotiflac_android/services/platform_bridge.dart';
-import 'package:spotiflac_android/utils/file_access.dart';
 import 'package:spotiflac_android/utils/string_utils.dart';
 import 'package:spotiflac_android/screens/album_screen.dart';
 import 'package:spotiflac_android/screens/home_tab.dart'
@@ -1950,7 +1949,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
     ref.read(settingsProvider.notifier).setHasSearchedBefore();
 
     if (album.providerId != null && album.providerId!.isNotEmpty) {
-      Navigator.push(
+      Navigator.push<void>(
         context,
         MaterialPageRoute<void>(
           builder: (context) => ExtensionAlbumScreen(
@@ -1962,7 +1961,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
         ),
       );
     } else {
-      Navigator.push(
+      Navigator.push<void>(
         context,
         MaterialPageRoute<void>(
           builder: (context) => AlbumScreen(

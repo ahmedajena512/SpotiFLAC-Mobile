@@ -21,8 +21,8 @@ class Style4MiniPlayer extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
+        Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
             builder: (context) => const NowPlayingScreen(),
             fullscreenDialog: true,
           ),
@@ -30,8 +30,8 @@ class Style4MiniPlayer extends ConsumerWidget {
       },
       onVerticalDragEnd: (details) {
         if (details.primaryVelocity != null && details.primaryVelocity! < -300) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
+          Navigator.of(context).push<void>(
+            MaterialPageRoute<void>(
               builder: (context) => const NowPlayingScreen(),
               fullscreenDialog: true,
             ),
@@ -59,7 +59,7 @@ class Style4MiniPlayer extends ConsumerWidget {
     );
   }
 
-  Widget _buildAmoledContainer(dynamic controller, dynamic playback, dynamic track) {
+  Widget _buildAmoledContainer(PlaybackController controller, PlaybackState playback, PlaybackTrack track) {
     return Container(
       height: 64, // Slim, consistent height
       width: double.infinity,
@@ -68,7 +68,7 @@ class Style4MiniPlayer extends ConsumerWidget {
     );
   }
 
-  Widget _buildBlurredContainer(dynamic controller, dynamic playback, dynamic track) {
+  Widget _buildBlurredContainer(PlaybackController controller, PlaybackState playback, PlaybackTrack track) {
     return Container(
       height: 64, // Slim, consistent height
       width: double.infinity,
@@ -86,7 +86,7 @@ class Style4MiniPlayer extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(dynamic controller, dynamic playback, dynamic track) {
+  Widget _buildContent(PlaybackController controller, PlaybackState playback, PlaybackTrack track) {
     return Stack(
       children: [
         // Content

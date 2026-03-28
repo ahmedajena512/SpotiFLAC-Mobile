@@ -571,7 +571,7 @@ class _Style4NowPlayingState extends ConsumerState<Style4NowPlaying> {
             icon: const Icon(Icons.queue_music_rounded, color: Colors.white),
             iconSize: 28,
             onPressed: () {
-              showModalBottomSheet(
+              showModalBottomSheet<void>(
                 context: context,
                 backgroundColor: Colors.transparent,
                 isScrollControlled: true,
@@ -589,9 +589,9 @@ class _Style4NowPlayingState extends ConsumerState<Style4NowPlaying> {
             iconSize: 28,
             onPressed: playback.lyrics != null
                 ? () {
-                    Navigator.push(
+                    Navigator.push<void>(
                       context,
-                      MaterialPageRoute(builder: (_) => const Style4Lyrics()),
+                      MaterialPageRoute<void>(builder: (_) => const Style4Lyrics()),
                     );
                   }
                 : null,
@@ -602,7 +602,7 @@ class _Style4NowPlayingState extends ConsumerState<Style4NowPlaying> {
             icon: const Icon(Icons.graphic_eq_rounded, color: Colors.white),
             iconSize: 28,
             onPressed: () {
-              showModalBottomSheet(
+              showModalBottomSheet<void>(
                 context: context,
                 backgroundColor: Colors.transparent,
                 isScrollControlled: true,

@@ -169,10 +169,10 @@ class Style6MiniPlayer extends ConsumerWidget {
     );
   }
 
-  Widget _buildQualityBadge(dynamic track) {
+  Widget _buildQualityBadge(PlaybackTrack track) {
     String badgeText = 'HIGH';
-    final qualityStr = track.quality as String?;
-    final filePath = track.filePath as String? ?? '';
+    final qualityStr = track.quality;
+    final filePath = track.filePath;
 
     // Check quality string or file extension
     final isFlac =

@@ -10,7 +10,6 @@ import 'package:spotiflac_android/providers/recent_access_provider.dart';
 import 'package:spotiflac_android/providers/local_library_provider.dart';
 import 'package:spotiflac_android/providers/playback_provider.dart';
 import 'package:spotiflac_android/services/platform_bridge.dart';
-import 'package:spotiflac_android/utils/file_access.dart';
 import 'package:spotiflac_android/utils/string_utils.dart';
 import 'package:spotiflac_android/widgets/track_collection_quick_actions.dart';
 import 'package:spotiflac_android/widgets/download_service_picker.dart';
@@ -598,10 +597,11 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
               trackIndex: index,
               onDownload: () => _downloadTrack(context, track),
             ),
-          ),
-          ),
-        );
-      }, childCount: tracks.length),
+            ),
+          );
+        },
+        childCount: tracks.length,
+      ),
     );
   }
 

@@ -960,7 +960,7 @@ class _PlayerStyleDropdowns extends ConsumerWidget {
     required ValueChanged<T> onSelected,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
       backgroundColor: colorScheme.surface,
@@ -1049,7 +1049,7 @@ class _LibraryStyleDropdowns extends ConsumerWidget {
     LibraryAppearanceState state,
   ) {
     final colorScheme = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
       backgroundColor: colorScheme.surface,

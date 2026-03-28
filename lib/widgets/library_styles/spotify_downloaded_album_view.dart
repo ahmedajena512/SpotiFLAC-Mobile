@@ -268,8 +268,8 @@ class _SpotifyDownloadedAlbumViewState
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 [
-                  if (widget.commonQuality != null) widget.commonQuality!,
-                  if (releaseYear != null) releaseYear,
+                  ?widget.commonQuality,
+                  ?releaseYear,
                   '${widget.tracks.length} ${widget.tracks.length == 1 ? "song" : "songs"}',
                 ].join(' • '),
                 style: TextStyle(
@@ -476,7 +476,7 @@ class _SpotifyDownloadedAlbumViewState
 
   void _showAlbumOptionsSheet(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
       backgroundColor: cs.surfaceContainerHigh,

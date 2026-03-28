@@ -379,7 +379,7 @@ class PlaybackController extends Notifier<PlaybackState> {
           _log.d('Lyrics: Checking for embedded lyrics via readFileMetadata');
           final metadataInfo = await PlatformBridge.readFileMetadata(filePath);
           final metadata = Map<String, String>.from(
-            metadataInfo['metadata'] ?? {},
+            metadataInfo['metadata'] as Map<dynamic, dynamic>? ?? {},
           );
           final embeddedLyrics =
               (metadata['LYRICS'] ?? metadata['UNSYNCEDLYRICS'] ?? '').trim();

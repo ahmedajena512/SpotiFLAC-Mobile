@@ -10,7 +10,7 @@ import 'package:spotiflac_android/screens/library_tracks_folder_screen.dart';
 
 class SpotifyLibraryRootView extends ConsumerStatefulWidget {
   final String activeFilterMode;
-  final Function(String) onFilterChanged;
+  final void Function(String) onFilterChanged;
   final LibraryCollectionsState collectionState;
   final List<dynamic> items; // Can be UnifiedLibraryItem, _GroupedAlbum, _GroupedLocalAlbum
   final int totalAlbums;
@@ -18,11 +18,11 @@ class SpotifyLibraryRootView extends ConsumerStatefulWidget {
   final int totalAll;
   final bool isSelectionMode;
   final Set<String> selectedIds;
-  final Function(String) onToggleSelection;
+  final void Function(String) onToggleSelection;
   final VoidCallback onClearSelection;
   final VoidCallback onSelectAll;
-  final Function(dynamic) onItemTap;
-  final Function(dynamic)? onOptionsTap;
+  final void Function(dynamic) onItemTap;
+  final void Function(dynamic)? onOptionsTap;
 
   // Since we bypassed QueueTab's native item tap for custom UI, we need
   // to expose a way to handle taps on albums/singles if necessary.
@@ -80,9 +80,9 @@ class _SpotifyLibraryRootViewState extends ConsumerState<SpotifyLibraryRootView>
   }
 
   void _openLikedSongs() {
-    Navigator.push(
+    Navigator.push<void>(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (_) => const LibraryTracksFolderScreen(
           mode: LibraryTracksFolderMode.loved,
         ),
@@ -91,9 +91,9 @@ class _SpotifyLibraryRootViewState extends ConsumerState<SpotifyLibraryRootView>
   }
 
   void _openWishlist() {
-    Navigator.push(
+    Navigator.push<void>(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (_) => const LibraryTracksFolderScreen(
           mode: LibraryTracksFolderMode.wishlist,
         ),
@@ -102,9 +102,9 @@ class _SpotifyLibraryRootViewState extends ConsumerState<SpotifyLibraryRootView>
   }
 
   void _openPlaylist(UserPlaylistCollection playlist) {
-    Navigator.push(
+    Navigator.push<void>(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (_) => LibraryTracksFolderScreen(
           mode: LibraryTracksFolderMode.playlist,
           playlistId: playlist.id,
@@ -115,7 +115,7 @@ class _SpotifyLibraryRootViewState extends ConsumerState<SpotifyLibraryRootView>
 
   void _showCreatePlaylistDialog(BuildContext context) {
     final nameController = TextEditingController();
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF282828),

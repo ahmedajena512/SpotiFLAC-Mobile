@@ -69,7 +69,7 @@ class Style3MiniPlayer extends ConsumerWidget {
     );
   }
 
-  Widget _buildAmoledContainer(double progress, String? coverPath, dynamic track, dynamic playback, dynamic controller) {
+  Widget _buildAmoledContainer(double progress, String? coverPath, PlaybackTrack track, PlaybackState playback, PlaybackController controller) {
     return Container(
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -78,7 +78,7 @@ class Style3MiniPlayer extends ConsumerWidget {
     );
   }
 
-  Widget _buildBlurredContainer(double progress, String? coverPath, dynamic track, dynamic playback, dynamic controller) {
+  Widget _buildBlurredContainer(double progress, String? coverPath, PlaybackTrack track, PlaybackState playback, PlaybackController controller) {
     return Container(
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -89,7 +89,7 @@ class Style3MiniPlayer extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(double progress, String? coverPath, dynamic track, dynamic playback, dynamic controller) {
+  Widget _buildContent(double progress, String? coverPath, PlaybackTrack track, PlaybackState playback, PlaybackController controller) {
     return Row(
       children: [
         // Circular Album Art with Progress Ring

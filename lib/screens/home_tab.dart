@@ -1691,7 +1691,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         _showTrackBottomSheet(item);
         return;
       case 'album':
-        Navigator.push(
+        Navigator.push<void>(
           context,
           MaterialPageRoute<void>(
             builder: (context) => ExtensionAlbumScreen(
@@ -1704,7 +1704,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         );
         return;
       case 'playlist':
-        Navigator.push(
+        Navigator.push<void>(
           context,
           MaterialPageRoute<void>(
             builder: (context) => ExtensionPlaylistScreen(
@@ -1717,7 +1717,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         );
         return;
       case 'artist':
-        Navigator.push(
+        Navigator.push<void>(
           context,
           MaterialPageRoute<void>(
             builder: (context) => ExtensionArtistScreen(
@@ -1884,7 +1884,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
 
   Future<void> _navigateToTrackAlbum(ExploreItem item) async {
     if (item.albumId != null && item.albumId!.isNotEmpty) {
-      Navigator.push(
+      Navigator.push<void>(
         context,
         MaterialPageRoute<void>(
           builder: (context) => ExtensionAlbumScreen(
@@ -2148,7 +2148,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
             item.providerId != 'spotify' &&
             item.providerId != 'tidal' &&
             item.providerId != 'qobuz') {
-          Navigator.push(
+          Navigator.push<void>(
             context,
             MaterialPageRoute<void>(
               builder: (context) => ExtensionArtistScreen(
@@ -2160,7 +2160,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
             ),
           );
         } else {
-          Navigator.push(
+          Navigator.push<void>(
             context,
             MaterialPageRoute<void>(
               builder: (context) => ArtistScreen(
@@ -2174,7 +2174,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         return;
       case RecentAccessType.album:
         if (item.providerId == 'download') {
-          Navigator.push(
+          Navigator.push<void>(
             context,
             MaterialPageRoute<void>(
               builder: (context) => DownloadedAlbumScreen(
@@ -2190,7 +2190,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
             item.providerId != 'spotify' &&
             item.providerId != 'tidal' &&
             item.providerId != 'qobuz') {
-          Navigator.push(
+          Navigator.push<void>(
             context,
             MaterialPageRoute<void>(
               builder: (context) => ExtensionAlbumScreen(
@@ -2202,7 +2202,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
             ),
           );
         } else {
-          Navigator.push(
+          Navigator.push<void>(
             context,
             MaterialPageRoute<void>(
               builder: (context) => AlbumScreen(
@@ -2240,7 +2240,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
             item.providerId != 'spotify' &&
             item.providerId != 'tidal' &&
             item.providerId != 'qobuz') {
-          Navigator.push(
+          Navigator.push<void>(
             context,
             MaterialPageRoute<void>(
               builder: (context) => ExtensionPlaylistScreen(
@@ -2252,7 +2252,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
             ),
           );
         } else {
-          Navigator.push(
+          Navigator.push<void>(
             context,
             MaterialPageRoute<void>(
               builder: (context) => PlaylistScreen(
@@ -2276,7 +2276,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
           item.filePath,
         );
     if (!mounted) return;
-    final result = await navigator.push(
+    final result = await navigator.push<bool>(
       slidePageRoute<bool>(page: TrackMetadataScreen(item: item)),
     );
     await DownloadedEmbeddedCoverResolver.scheduleRefreshForPath(
@@ -2910,7 +2910,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
   void _navigateToArtist(String artistId, String artistName, String? imageUrl) {
     ref.read(settingsProvider.notifier).setHasSearchedBefore();
 
-    Navigator.push(
+    Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
         builder: (context) => ArtistScreen(
@@ -2936,7 +2936,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         );
 
     // Keep the full ID with prefix (e.g., "deezer:123") for AlbumScreen to detect source
-    Navigator.push(
+    Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
         builder: (context) => AlbumScreen(
@@ -2963,7 +2963,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
         );
 
     // Keep the full ID with prefix (e.g., "deezer:123") for PlaylistScreen to detect source
-    Navigator.push(
+    Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
         builder: (context) => PlaylistScreen(
@@ -2999,7 +2999,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
           providerId: extensionId,
         );
 
-    Navigator.push(
+    Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
         builder: (context) => ExtensionAlbumScreen(
@@ -3035,7 +3035,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
           providerId: extensionId,
         );
 
-    Navigator.push(
+    Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
         builder: (context) => ExtensionPlaylistScreen(
@@ -3070,7 +3070,7 @@ class _HomeTabState extends ConsumerState<HomeTab>
           providerId: extensionId,
         );
 
-    Navigator.push(
+    Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
         builder: (context) => ExtensionArtistScreen(
@@ -3614,8 +3614,8 @@ class _TrackItemWithStatusState extends ConsumerState<_TrackItemWithStatus> {
           coverUrl: track.coverUrl,
           filePath: '',
           durationMs: track.duration > 0 ? track.duration * 1000 : null,
-          streamUrl: streamData['stream_url'],
-          lyricsUrl: streamData['lyrics_lrc'],
+          streamUrl: streamData['stream_url'] as String?,
+          lyricsUrl: streamData['lyrics_lrc'] as String?,
           quality: displayQuality,
         );
 

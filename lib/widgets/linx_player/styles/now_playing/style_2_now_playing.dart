@@ -519,7 +519,7 @@ class _Style2NowPlayingState extends ConsumerState<Style2NowPlaying> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                MaterialPageRoute<void>(
                   builder: (_) => SpotifyFullScreenLyrics(
                     playback: playback,
                     controller: controller,
@@ -615,7 +615,7 @@ void _showSpotifyMenu(
   PlaybackController controller,
   Color dominant,
 ) {
-  showModalBottomSheet(
+  showModalBottomSheet<void>(
     context: context,
     backgroundColor: dominant.withValues(alpha: 0.95),
     shape: const RoundedRectangleBorder(
@@ -677,7 +677,7 @@ void _showSpotifyMenu(
                         Navigator.pop(context);
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
+                          MaterialPageRoute<void>(
                             builder: (_) => SpotifyFullScreenLyrics(
                               playback: playback,
                               controller: controller,
@@ -741,7 +741,7 @@ void _showSpotifyMenu(
 void _showSpotifyQueue(BuildContext context, Color dominant) {
   Navigator.push(
     context,
-    MaterialPageRoute(
+    MaterialPageRoute<void>(
       builder: (context) => SpotifyQueueScreen(dominant: dominant),
     ),
   );
@@ -960,7 +960,7 @@ class SpotifyQueueScreen extends ConsumerWidget {
 void _showSpotifyEqualizer(BuildContext context, Color dominant) {
   Navigator.push(
     context,
-    MaterialPageRoute(
+    MaterialPageRoute<void>(
       builder: (context) => Scaffold(
         backgroundColor: dominant.withValues(alpha: 0.5),
         appBar: AppBar(

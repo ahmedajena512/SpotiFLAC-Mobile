@@ -275,9 +275,9 @@ class _Style5NowPlayingState extends ConsumerState<Style5NowPlaying> {
                 right: 12,
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.push(
+                    Navigator.push<void>(
                       context,
-                      PageRouteBuilder(
+                      PageRouteBuilder<void>(
                         pageBuilder: (context, animation, secondaryAnimation) =>
                             Style5Lyrics(bgColor: _bgColor),
                         transitionsBuilder:
@@ -623,7 +623,7 @@ class _Style5NowPlayingState extends ConsumerState<Style5NowPlaying> {
               size: 26,
             ),
             onPressed: () {
-              showModalBottomSheet(
+              showModalBottomSheet<void>(
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,

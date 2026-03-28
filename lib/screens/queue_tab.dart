@@ -2353,7 +2353,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
 
   void _navigateToLocalMetadataScreen(LocalLibraryItem item) {
     _searchFocusNode.unfocus();
-    Navigator.push(
+    Navigator.push<void>(
       context,
       slidePageRoute<void>(page: TrackMetadataScreen(localItem: item)),
     ).then((_) => _searchFocusNode.unfocus());
@@ -4330,56 +4330,7 @@ class _QueueTabState extends ConsumerState<QueueTab> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Builder(
-                      builder: (context) {
-                        final hasValidCover =
-                            album.coverPath != null &&
-                            File(album.coverPath!).existsSync();
-                        final embeddedCoverPath =
-                            !hasValidCover && album.tracks.isNotEmpty
-                            ? _resolveDownloadedEmbeddedCoverPath(
-                                album.tracks.first.filePath,
-                              )
-                            : null;
-
-                        if (hasValidCover || embeddedCoverPath != null) {
-                          return Image.file(
-                            File(
-                              hasValidCover
-                                  ? album.coverPath!
-                                  : embeddedCoverPath!,
-                            ),
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            cacheWidth: 300,
-                            cacheHeight: 300,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  color: colorScheme.surfaceContainerHighest,
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.album,
-                                      color: colorScheme.onSurfaceVariant,
-                                      size: 48,
-                                    ),
-                                  ),
-                                ),
-                          );
-                        }
-
-                        return Container(
-                          color: colorScheme.surfaceContainerHighest,
-                          child: Center(
-                            child: Icon(
-                              Icons.album,
-                              color: colorScheme.onSurfaceVariant,
-                              size: 48,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                    child: coverWidget ?? _albumPlaceholder(colorScheme),
                   ),
                   Positioned(
                     right: 8,

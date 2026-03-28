@@ -11,7 +11,7 @@ import './lyric/lyrics_models.dart';
 class KaraokeLyricsView extends StatefulWidget {
   final LyricsData? lyricsData;
   final ValueNotifier<Duration> currentPosition;
-  final Function(Duration) onTapLine;
+  final void Function(Duration) onTapLine;
   final TextStyle? activeStyle;
   final TextStyle? inactiveStyle;
   final TextAlign textAlign;
@@ -676,7 +676,7 @@ class _InterpolatedPositionState extends State<_InterpolatedPosition>
 
 class _MeasureSize extends StatefulWidget {
   final Widget child;
-  final Function(Size) onChange;
+  final void Function(Size) onChange;
   const _MeasureSize({super.key, required this.onChange, required this.child});
   @override
   State<_MeasureSize> createState() => _MeasureSizeState();

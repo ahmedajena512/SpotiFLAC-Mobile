@@ -22,16 +22,16 @@ class LyricsData {
   };
 
   factory LyricsData.fromJson(Map<String, dynamic> json) {
-    final int version = json['version'] ?? 0;
+    final int version = (json['version'] as num?)?.toInt() ?? 0;
     switch (version) {
       case 0:
       case 1:
         return LyricsData(
           version: 1,
           lines: (json['lines'] as List)
-              .map((e) => LyricLine.fromJson(e))
+              .map((e) => LyricLine.fromJson(e as Map<String, dynamic>))
               .toList(),
-          metadata: json['metadata'],
+          metadata: (json['metadata'] as Map?)?.cast<String, dynamic>(),
         );
       default:
         throw UnsupportedError('Unsupported LyricsData version: $version');
@@ -45,7 +45,7 @@ class LyricsData {
 
   factory LyricsData.fromBlob(Uint8List blob) {
     final jsonString = utf8.decode(blob);
-    return LyricsData.fromJson(jsonDecode(jsonString));
+    return LyricsData.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
   }
 
   LyricLine? getLineAt(Duration position) {
@@ -89,9 +89,11 @@ class LyricLine {
 
   factory LyricLine.fromJson(Map<String, dynamic> json) {
     return LyricLine(
-      spans: (json['spans'] as List).map((e) => LyricSpan.fromJson(e)).toList(),
-      startTime: Duration(milliseconds: json['startTime']),
-      endTime: Duration(milliseconds: json['endTime']),
+      spans: (json['spans'] as List)
+          .map((e) => LyricSpan.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      startTime: Duration(milliseconds: (json['startTime'] as num).toInt()),
+      endTime: Duration(milliseconds: (json['endTime'] as num).toInt()),
       translations: (json['translations'] as Map?)?.map(
         (k, v) => MapEntry(k.toString(), v.toString()),
       ),
@@ -170,9 +172,9 @@ class LyricSpan {
 
   factory LyricSpan.fromJson(Map<String, dynamic> json) {
     return LyricSpan(
-      text: json['text'],
-      start: Duration(milliseconds: json['start']),
-      end: Duration(milliseconds: json['end']),
+      text: json['text'] as String? ?? '',
+      start: Duration(milliseconds: (json['start'] as num).toInt()),
+      end: Duration(milliseconds: (json['end'] as num).toInt()),
     );
   }
 

@@ -211,7 +211,7 @@ class _ExtensionsPageState extends ConsumerState<ExtensionsPage> {
                     return _ExtensionItem(
                       extension: ext,
                       showDivider: index < extState.extensions.length - 1,
-                      onTap: () => Navigator.push(
+                      onTap: () => Navigator.push<void>(
                         context,
                         MaterialPageRoute<void>(
                           builder: (_) =>
@@ -468,7 +468,7 @@ class _DownloadPriorityItem extends ConsumerWidget {
 
     return InkWell(
       onTap: hasDownloadExtensions
-          ? () => Navigator.push(
+          ? () => Navigator.push<void>(
               context,
               MaterialPageRoute<void>(
                 builder: (_) => const ProviderPriorityPage(),
@@ -535,7 +535,7 @@ class _MetadataPriorityItem extends ConsumerWidget {
 
     return InkWell(
       onTap: hasMetadataExtensions
-          ? () => Navigator.push(
+          ? () => Navigator.push<void>(
               context,
               MaterialPageRoute<void>(
                 builder: (_) => const MetadataProviderPriorityPage(),

@@ -319,7 +319,7 @@ class _Style6NowPlayingState extends ConsumerState<Style6NowPlaying> {
     );
   }
 
-  Widget _buildTrackInfo(dynamic track) {
+  Widget _buildTrackInfo(PlaybackTrack track) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -367,10 +367,10 @@ class _Style6NowPlayingState extends ConsumerState<Style6NowPlaying> {
     );
   }
 
-  Widget _buildQualityBadge(dynamic track) {
+  Widget _buildQualityBadge(PlaybackTrack track) {
     String badgeText = 'HIGH';
-    final qualityStr = track.quality as String?;
-    final filePath = track.filePath as String? ?? '';
+    final qualityStr = track.quality;
+    final filePath = track.filePath;
 
     // Check quality string or file extension
     final isFlac =
@@ -593,9 +593,9 @@ class _Style6NowPlayingState extends ConsumerState<Style6NowPlaying> {
           ),
           onPressed: playback.lyrics != null
               ? () {
-                  Navigator.push(
+                  Navigator.push<void>(
                     context,
-                    PageRouteBuilder(
+                    PageRouteBuilder<void>(
                       pageBuilder: (context, animation, secondaryAnimation) =>
                           TidalLyricsScreen(isAmoled: isAmoled),
                       transitionsBuilder:
@@ -650,9 +650,9 @@ class _Style6NowPlayingState extends ConsumerState<Style6NowPlaying> {
           ),
           onPressed: () {
             // Push Tidal Queue Screen
-            Navigator.push(
+            Navigator.push<void>(
               context,
-              PageRouteBuilder(
+              PageRouteBuilder<void>(
                 pageBuilder: (context, animation, secondaryAnimation) =>
                     TidalQueueScreen(isAmoled: isAmoled),
                 transitionsBuilder:

@@ -331,8 +331,8 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         setState(() {
           _editedMetadata = {
             ...?_editedMetadata,
-            if (resolvedBitDepth != null) 'bit_depth': resolvedBitDepth,
-            if (resolvedSampleRate != null) 'sample_rate': resolvedSampleRate,
+            'bit_depth': ?resolvedBitDepth,
+            'sample_rate': ?resolvedSampleRate,
             if (needsAlbum) 'album': resolvedAlbum,
             if (needsDuration) 'duration': resolvedDuration,
           };

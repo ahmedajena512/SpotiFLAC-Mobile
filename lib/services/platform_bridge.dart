@@ -95,7 +95,7 @@ class PlatformBridge {
     final response = await _invokeDownloadMethod('getStreamUrl', routedPayload);
     if (response['success'] == true) {
       final service = response['service'] ?? payload.service;
-      String streamUrl = response['stream_url'] ?? '';
+      String streamUrl = (response['stream_url'] as String?) ?? '';
 
       // Tidal sometimes returns a manifest instead of a direct URL
       // Format: MANIFEST:base64(json)
@@ -105,10 +105,10 @@ class PlatformBridge {
           final base64String = streamUrl.substring(9);
           final decodedJson = utf8.decode(base64Decode(base64String));
           final manifestData = jsonDecode(decodedJson) as Map<String, dynamic>;
-          if (manifestData.containsKey('urls') &&
-              manifestData['urls'] is List &&
-              (manifestData['urls'] as List).isNotEmpty) {
-            streamUrl = manifestData['urls'][0] as String;
+            if (manifestData.containsKey('urls') &&
+                manifestData['urls'] is List &&
+                (manifestData['urls'] as List).isNotEmpty) {
+              streamUrl = (manifestData['urls'] as List)[0] as String;
             _log.i('Extracted direct stream URL from MANIFEST');
             response['stream_url'] = streamUrl; // Update response
           }

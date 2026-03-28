@@ -157,6 +157,6 @@ class SettingsTab extends ConsumerWidget {
 
   void _navigateTo(BuildContext context, Widget page) {
     FocusManager.instance.primaryFocus?.unfocus();
-    Navigator.of(context).push(slidePageRoute<void>(page: page));
+    Navigator.of(context).push<void>(slidePageRoute<void>(page: page));
   }
 }

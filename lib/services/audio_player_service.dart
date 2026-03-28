@@ -33,7 +33,7 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
   bool get isPlaying => _isPlaying;
 
   /// Stream subscriptions for cleanup.
-  final List<StreamSubscription> _subscriptions = [];
+  final List<StreamSubscription<dynamic>> _subscriptions = [];
 
   /// Callback when current song completes.
   VoidCallback? onSongComplete;

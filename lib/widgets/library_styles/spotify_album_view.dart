@@ -329,7 +329,7 @@ class _SpotifyAlbumViewState extends ConsumerState<SpotifyAlbumView> {
 
   void _showAlbumOptionsSheet(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
       backgroundColor: colorScheme.surfaceContainerHigh,

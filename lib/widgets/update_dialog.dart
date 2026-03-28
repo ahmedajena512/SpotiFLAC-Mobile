@@ -507,7 +507,7 @@ Future<void> showUpdateDialog(
   required UpdateInfo updateInfo,
   required VoidCallback onDisableUpdates,
 }) async {
-  return showDialog(
+  return showDialog<void>(
     context: context,
     builder: (context) => UpdateDialog(
       updateInfo: updateInfo,

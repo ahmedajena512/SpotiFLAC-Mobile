@@ -40,5 +40,5 @@ class NowPlayingScreen extends ConsumerWidget {
 void openNowPlayingScreen(BuildContext context) {
   Navigator.of(
     context,
-  ).push(PlayerTransitionRoute(page: const NowPlayingScreen()));
+  ).push(PlayerTransitionRoute<void>(page: const NowPlayingScreen()));
 }

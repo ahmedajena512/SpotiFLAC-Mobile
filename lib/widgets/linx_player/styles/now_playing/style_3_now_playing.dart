@@ -169,9 +169,9 @@ class _Style3NowPlayingState extends ConsumerState<Style3NowPlaying> {
                                 key: const ValueKey('inline_lyrics'),
                                 onTap: () {
                                   // Push fullscreen with purely fade transition
-                                  Navigator.push(
+                                  Navigator.push<void>(
                                     context,
-                                    PageRouteBuilder(
+                                    PageRouteBuilder<void>(
                                       opaque: false,
                                       transitionDuration: const Duration(
                                         milliseconds: 400,
@@ -579,9 +579,9 @@ class _Style3NowPlayingState extends ConsumerState<Style3NowPlaying> {
           ),
           onPressed: () {
             // Push the matching Apple Queue screen
-            Navigator.push(
+            Navigator.push<void>(
               context,
-              MaterialPageRoute(builder: (_) => const AppleQueueScreen()),
+              MaterialPageRoute<void>(builder: (_) => const AppleQueueScreen()),
             );
           },
         ),

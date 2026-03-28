@@ -270,7 +270,7 @@ class _TrackOptionsSheet extends ConsumerWidget {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) => AlbumScreen(
                           albumId: track.albumId!,
                           albumName: track.albumName,
@@ -299,7 +299,7 @@ class _TrackOptionsSheet extends ConsumerWidget {
 
                   if (historyItem != null) {
                     await Navigator.of(context).push(
-                      PageRouteBuilder(
+                      PageRouteBuilder<void>(
                         pageBuilder: (context, animation, secondaryAnimation) => TrackMetadataScreen(item: historyItem),
                         transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
                       ),
@@ -316,7 +316,7 @@ class _TrackOptionsSheet extends ConsumerWidget {
 
                   if (localItem != null) {
                     await Navigator.of(context).push(
-                      PageRouteBuilder(
+                      PageRouteBuilder<void>(
                         pageBuilder: (context, animation, secondaryAnimation) => TrackMetadataScreen(localItem: localItem),
                         transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
                       ),

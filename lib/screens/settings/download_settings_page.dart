@@ -508,7 +508,7 @@ class _DownloadSettingsPageState extends ConsumerState<DownloadSettingsPage> {
                       subtitle: _getLyricsProvidersSubtitle(
                         settings.lyricsProviders,
                       ),
-                      onTap: () => Navigator.push(
+                      onTap: () => Navigator.push<void>(
                         context,
                         MaterialPageRoute<void>(
                           builder: (_) => const LyricsProviderPriorityPage(),
